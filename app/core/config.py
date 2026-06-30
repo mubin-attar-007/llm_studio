@@ -22,7 +22,7 @@ class Settings(BaseSettings):
 
     # app / environment
     APP_ENV: str = "development"          # "development" | "production"
-    APP_NAME: str = "GLM Studio"
+    APP_NAME: str = "LLM Studio"
 
     # database — Postgres in production (DATABASE_URL), SQLite locally / in tests
     DATABASE_URL: str = ""
@@ -65,12 +65,12 @@ class Settings(BaseSettings):
 
     @property
     def db_path(self) -> str:
-        p = os.getenv("GLM_DB_PATH") or self.DB_PATH
+        p = os.getenv("LLM_DB_PATH") or os.getenv("GLM_DB_PATH") or self.DB_PATH
         if p:
             return p
         d = os.path.join(self.data_dir, "runtime")
         os.makedirs(d, exist_ok=True)
-        return os.path.join(d, "glm_studio.db")
+        return os.path.join(d, "llm_studio.db")
 
     @property
     def database_url(self) -> str:

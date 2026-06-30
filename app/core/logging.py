@@ -3,7 +3,7 @@ import logging
 
 from app.core.config import settings
 
-log = logging.getLogger("glmstudio")
+log = logging.getLogger("llmstudio")
 
 
 def setup_logging():

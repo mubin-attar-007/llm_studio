@@ -1,4 +1,4 @@
-title = "GLM Studio gitleaks config"
+title = "LLM Studio gitleaks config"
 
 [extend]
 useDefault = true

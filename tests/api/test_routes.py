@@ -10,7 +10,7 @@ def test_healthz(client):
 def test_index_serves_html(anon_client):
     r = anon_client.get("/")
     assert r.status_code == 200
-    assert "GLM Studio" in r.text
+    assert "LLM Studio" in r.text
 
 
 def test_models_shape(client):

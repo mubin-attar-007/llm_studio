@@ -1,6 +1,6 @@
 # Archived — not needed for normal use
 
-For everyday use you run GLM Studio from `scripts\run.bat` (cloud + local) or
+For everyday use you run LLM Studio from `scripts\run.bat` (cloud + local) or
 `scripts\run_local.bat` (local-only), which opens it in your browser. **None of the files
 here are required for that.** They're kept in case you want them later, grouped by topic:
 
@@ -16,7 +16,7 @@ archive/
 | File | What it is | To use it again |
 |---|---|---|
 | `desktop.py` | Native desktop-window wrapper (pywebview) | run from the **project root**: `.venv\Scripts\python.exe archive\desktop\desktop.py` |
-| `build_desktop.py` | Builds a one-click `GLM Studio.exe` (PyInstaller) | from the **project root**: `.venv\Scripts\python.exe archive\desktop\build_desktop.py` → `dist\GLM Studio.exe` |
+| `build_desktop.py` | Builds a one-click `LLM Studio.exe` (PyInstaller) | from the **project root**: `.venv\Scripts\python.exe archive\desktop\build_desktop.py` → `dist\LLM Studio.exe` |
 | `make_desktop.bat` | One-click `.exe` build launcher | double-click (it builds via `build_desktop.py`) |
 | `set_key.py` | Store the API key in Windows Credential Manager (keyring) | `.venv\Scripts\python.exe archive\desktop\set_key.py` |
 

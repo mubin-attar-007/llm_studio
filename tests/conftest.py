@@ -1,13 +1,16 @@
 import os
 import tempfile
 
-# Use a throwaway DB for tests (must be set before app.* is imported).
-os.environ.setdefault("GLM_DB_PATH", os.path.join(tempfile.gettempdir(), "glm_studio_test.db"))
+# Tests ALWAYS use a throwaway SQLite DB — never a real Postgres. Force
+# DATABASE_URL empty so a developer's .env/environment can't point the suite at
+# production. (Must be set before app.* is imported.)
+os.environ["DATABASE_URL"] = ""
+os.environ.setdefault("LLM_DB_PATH", os.path.join(tempfile.gettempdir(), "llm_studio_test.db"))
 # The suite makes many register/login calls — don't let the IP rate limiter trip.
 os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
 # Start each test session from a clean database so registration/quota are deterministic.
 try:
-    os.remove(os.environ["GLM_DB_PATH"])
+    os.remove(os.environ["LLM_DB_PATH"])
 except OSError:
     pass
 

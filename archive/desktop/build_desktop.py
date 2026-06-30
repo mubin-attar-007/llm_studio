@@ -1,13 +1,13 @@
-"""Build a single-file Windows .exe for GLM Studio (desktop mode).
+"""Build a single-file Windows .exe for LLM Studio (desktop mode).
 
-Run:  .venv\\Scripts\\python.exe build_desktop.py   ->  dist/GLM Studio.exe
+Run:  .venv\\Scripts\\python.exe build_desktop.py   ->  dist/LLM Studio.exe
 (or just double-click make_desktop.bat)
 """
 import PyInstaller.__main__
 
 PyInstaller.__main__.run([
     "desktop.py",
-    "--name=GLM Studio",
+    "--name=LLM Studio",
     "--onefile",
     "--windowed",
     "--noconfirm",

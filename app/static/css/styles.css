@@ -1,5 +1,5 @@
 /* ===========================================================================
-   GLM Studio — ChatGPT-style UI
+   LLM Studio — ChatGPT-style UI
    Light / dark themes via CSS variables. "system" mode is resolved in JS by
    setting data-theme="light|dark" on <html> from prefers-color-scheme.
    =========================================================================== */

@@ -1,5 +1,5 @@
 """App-wide constants."""
-SERVICE_NAME = "glm-studio"
+SERVICE_NAME = "llm-studio"
 
 # user-facing error/status messages
 ERR_NO_TEXT = "The model returned no text. Please try again or pick another model."

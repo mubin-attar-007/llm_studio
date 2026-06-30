@@ -1,4 +1,4 @@
-# GLM Studio
+# LLM Studio
 
 A local, **ChatGPT-style** chat app with **two modes**:
 

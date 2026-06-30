@@ -1,7 +1,7 @@
 [project]
-name = "glm-studio"
+name = "llm-studio"
 version = "1.0.0"
-description = "Local AI chat app (cloud + local models) — FastAPI + vanilla JS"
+description = "Multi-user AI chat SaaS (cloud + local models) — FastAPI + vanilla JS"
 requires-python = ">=3.10"
 
 [tool.pytest.ini_options]

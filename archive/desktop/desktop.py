@@ -1,4 +1,4 @@
-"""Run GLM Studio as a native desktop window (no browser chrome).
+"""Run LLM Studio as a native desktop window (no browser chrome).
 
 Starts the FastAPI server on a background thread, then opens a pywebview window.
 Run from source:   .venv\\Scripts\\python.exe desktop.py
@@ -30,7 +30,7 @@ def main():
             break
         except Exception:
             time.sleep(0.25)
-    webview.create_window("GLM Studio", f"http://{HOST}:{PORT}", width=1200, height=820)
+    webview.create_window("LLM Studio", f"http://{HOST}:{PORT}", width=1200, height=820)
     webview.start()
 
 

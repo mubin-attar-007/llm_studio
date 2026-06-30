@@ -1,6 +1,6 @@
-/* GLM Studio — ChatGPT-style frontend (with settings, compare, thinking, voice) */
+/* LLM Studio — ChatGPT-style frontend (with settings, compare, thinking, voice) */
 const $ = s => document.querySelector(s);
-const DEFAULT_PERSONA = "You are GLM, a helpful, knowledgeable assistant. Use Markdown (tables, lists, fenced code blocks with language tags, and LaTeX math with $...$ or $$...$$) when useful.";
+const DEFAULT_PERSONA = "You are a helpful, knowledgeable assistant. Use Markdown (tables, lists, fenced code blocks with language tags, and LaTeX math with $...$ or $$...$$) when useful.";
 
 const IC = {
   copy:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
@@ -19,12 +19,12 @@ let state = {
   user: null, quota: null, uid: null,
   chats: [],
   current: null,
-  model: localStorage.getItem("glm_model") || "",
-  theme: localStorage.getItem("glm_theme") || "system",
+  model: localStorage.getItem("llm_model") || "",
+  theme: localStorage.getItem("llm_theme") || "system",
   search: "",
   settings: Object.assign({maxTokens:4096, temperature:0.7, persona:DEFAULT_PERSONA},
-                          JSON.parse(localStorage.getItem("glm_settings") || "{}")),
-  compare: Object.assign({on:false, models:[]}, JSON.parse(localStorage.getItem("glm_compare") || "{}")),
+                          JSON.parse(localStorage.getItem("llm_settings") || "{}")),
+  compare: Object.assign({on:false, models:[]}, JSON.parse(localStorage.getItem("llm_compare") || "{}")),
 };
 
 marked.setOptions({ breaks:true, gfm:true });
@@ -40,7 +40,7 @@ function badgeHtml(id){ return `<span class="model-badge"><span class="dot ${mod
 
 /* ----------------------------- theme ------------------------------------ */
 function applyTheme(mode){
-  state.theme = mode; localStorage.setItem("glm_theme", mode);
+  state.theme = mode; localStorage.setItem("llm_theme", mode);
   const dark = mode === "dark" || (mode === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
   document.querySelectorAll("[data-theme-choice]").forEach(b => b.classList.toggle("sel", b.dataset.themeChoice === mode));
@@ -63,7 +63,7 @@ function renderModelMenu(){
     return `<div class="opt${cur}" onclick="pickModel('${m.id}')"><span class="opt-name">${escapeHtml(shortName(m.id))}</span><span class="opt-tags"><span class="tag-kind ${m.kind}">${m.kind}</span>${slow?'<span class="tag-slow">thinks</span>':''}</span></div>`;
   }).join("");
 }
-function pickModel(id){ state.model = id; localStorage.setItem("glm_model", id); updateModelLabel(); renderModelMenu(); closeAllMenus(); }
+function pickModel(id){ state.model = id; localStorage.setItem("llm_model", id); updateModelLabel(); renderModelMenu(); closeAllMenus(); }
 function updateModelLabel(){ $("#modelLabel").textContent = shortName(state.model) || "Model"; }
 function openModelMenu(){ closeModals(); $("#modelMenu").classList.add("open"); }
 
@@ -72,8 +72,8 @@ function uid(){ return "c" + Math.random().toString(36).slice(2,10); }
 let _syncT=null;
 function syncDB(){ clearTimeout(_syncT); _syncT=setTimeout(()=>{ fetch("/api/chats",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(state.chats)}).catch(()=>{}); }, 900); }
 function saveChats(){
-  if(state.uid){ localStorage.setItem("glm_chats_"+state.uid, JSON.stringify(state.chats));
-    localStorage.setItem("glm_current_"+state.uid, state.current || ""); }
+  if(state.uid){ localStorage.setItem("llm_chats_"+state.uid, JSON.stringify(state.chats));
+    localStorage.setItem("llm_current_"+state.uid, state.current || ""); }
   syncDB();
 }
 function curChat(){ return state.chats.find(c => c.id === state.current); }
@@ -158,7 +158,7 @@ function rowHtml(m,i,total){
       const think = e.thinking ? `<details class="think"><summary>Thoughts</summary><div class="tk">${escapeHtml(e.thinking)}</div></details>` : "";
       return `<div class="cmp-col" data-ci="${ci}"><div class="cmp-col-head">${badgeHtml(e.model)}</div><div class="content" data-md="1">${think}${inner}</div></div>`;
     }).join("");
-    return `<div class="row assistant" data-i="${i}"><div class="avatar">G</div><div class="asst"><div class="cmp-cols">${cols}</div></div></div>`;
+    return `<div class="row assistant" data-i="${i}"><div class="avatar">L</div><div class="asst"><div class="cmp-cols">${cols}</div></div></div>`;
   }
   // single assistant
   const last = i===total-1;
@@ -172,7 +172,7 @@ function rowHtml(m,i,total){
   inner += `<div class="content" data-md="1">${body}</div>`;
   if(m.error) inner += `<div class="err-card">⚠️ ${escapeHtml(m.error)}<div class="acts"><button onclick="regen()">Retry</button><button onclick="openModelMenu()">Switch model</button></div></div>`;
   if(!m._streaming && (m.content||m.error)) inner += `<div class="msg-actions"><button class="act" title="Copy" onclick="copyMsg(${i})">${IC.copy}</button>${last?`<button class="act" title="Regenerate" onclick="regen()">${IC.regen}</button>`:''}</div>`;
-  return `<div class="row assistant ${last?'last':''}" data-i="${i}"><div class="avatar">G</div><div class="asst">${inner}</div></div>`;
+  return `<div class="row assistant ${last?'last':''}" data-i="${i}"><div class="avatar">L</div><div class="asst">${inner}</div></div>`;
 }
 function enhance(root){
   root.querySelectorAll('.content[data-md="1"]').forEach(el=>{
@@ -358,15 +358,15 @@ function exportChat(id){
   let md=`# ${c.title}\n\n`;
   c.messages.forEach(m=>{
     if(m.role==="user") md += `**You:**\n\n${m.display!=null?m.display:m.content}\n\n---\n\n`;
-    else if(m.compare) m.compare.forEach(e=> md += `**GLM (${shortName(e.model)}):**\n\n${e.content||e.error}\n\n---\n\n`);
-    else md += `**GLM (${shortName(m.model||"")}):**\n\n${m.content}\n\n---\n\n`;
+    else if(m.compare) m.compare.forEach(e=> md += `**Assistant (${shortName(e.model)}):**\n\n${e.content||e.error}\n\n---\n\n`);
+    else md += `**Assistant (${shortName(m.model||"")}):**\n\n${m.content}\n\n---\n\n`;
   });
   const b=new Blob([md],{type:"text/markdown"}); const u=URL.createObjectURL(b);
   const a=document.createElement("a"); a.href=u; a.download=(c.title.replace(/[^\w]+/g,"_")||"chat")+".md"; a.click(); URL.revokeObjectURL(u);
 }
 
 /* ----------------------------- compare UI ------------------------------- */
-function saveCompare(){ localStorage.setItem("glm_compare", JSON.stringify(state.compare)); }
+function saveCompare(){ localStorage.setItem("llm_compare", JSON.stringify(state.compare)); }
 function toggleCompare(){
   state.compare.on=!state.compare.on;
   if(state.compare.on && state.compare.models.length<2){
@@ -403,7 +403,7 @@ function toggleCompareModel(id, el){
 }
 
 /* ----------------------------- settings / voice ------------------------- */
-function saveSettings(){ localStorage.setItem("glm_settings", JSON.stringify(state.settings)); }
+function saveSettings(){ localStorage.setItem("llm_settings", JSON.stringify(state.settings)); }
 function wireSettings(){
   const mt=$("#maxTokensRange"), tp=$("#tempRange"), pe=$("#personaInput");
   mt.value=state.settings.maxTokens; $("#maxTokensVal").textContent=state.settings.maxTokens;
@@ -544,12 +544,12 @@ function consumeQuotaLocal(){
   updateQuota(state.quota);
 }
 async function loadHistory(uid){
-  const ck="glm_chats_"+uid;
+  const ck="llm_chats_"+uid;
   let local=[]; try{ local=JSON.parse(localStorage.getItem(ck)||"[]"); }catch(e){}
-  if(!local.length){ try{ const legacy=JSON.parse(localStorage.getItem("glm_chats")||"[]"); if(legacy.length) local=legacy; }catch(e){} }
+  if(!local.length){ try{ const legacy=JSON.parse(localStorage.getItem("llm_chats")||"[]"); if(legacy.length) local=legacy; }catch(e){} }
   let server=[]; try{ const d=await (await fetch("/api/chats")).json(); server=d.chats||[]; }catch(e){}
   state.chats=server.length?server:local;
-  state.current=localStorage.getItem("glm_current_"+uid) || (state.chats[0]&&state.chats[0].id) || null;
+  state.current=localStorage.getItem("llm_current_"+uid) || (state.chats[0]&&state.chats[0].id) || null;
   if(!server.length && local.length) syncDB();   // migrate local chats up to the server
 }
 async function enterApp(me){

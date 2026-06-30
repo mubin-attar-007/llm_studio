@@ -1,4 +1,4 @@
-"""GLM Studio — FastAPI entry point.
+"""LLM Studio — FastAPI entry point.
 
 Run:   .venv\\Scripts\\python.exe -m app.main     (or: uvicorn app.main:app)
 Docs:  http://127.0.0.1:5000/docs

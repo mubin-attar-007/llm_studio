@@ -30,7 +30,7 @@ async def extract_upload(upload):
     if not data:
         raise ValueError("The file appears to be empty.")
 
-    path = os.path.join(settings.uploads_dir, "glm_" + safe_filename(name))
+    path = os.path.join(settings.uploads_dir, "llm_" + safe_filename(name))
     with open(path, "wb") as f:
         f.write(data)
     try:
