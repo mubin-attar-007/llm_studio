@@ -1,15 +1,15 @@
-"""Chat-history service (wraps the repository)."""
+"""Chat-history service (wraps the repository, always per-user)."""
 from app.database import repository
 
 
-def all_chats():
-    return repository.list_chats()
+def all_chats(owner_id: str):
+    return repository.list_chats(owner_id)
 
 
-def save_chats(chats) -> int:
-    repository.upsert_chats(chats)
+def save_chats(owner_id: str, chats) -> int:
+    repository.upsert_chats(owner_id, chats)
     return len(chats)
 
 
-def remove_chat(cid):
-    repository.delete_chat(cid)
+def remove_chat(owner_id: str, cid):
+    repository.delete_chat(owner_id, cid)

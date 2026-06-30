@@ -20,6 +20,26 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "info"
     MAX_TOKENS: int = 4096
 
+    # app / environment
+    APP_ENV: str = "development"          # "development" | "production"
+    APP_NAME: str = "GLM Studio"
+
+    # database — Postgres in production (DATABASE_URL), SQLite locally / in tests
+    DATABASE_URL: str = ""
+
+    # auth / sessions
+    SESSION_TTL_DAYS: int = 30
+    COOKIE_NAME: str = "session"
+    COOKIE_SECURE: bool = False           # set True in production (HTTPS)
+    COOKIE_SAMESITE: str = "lax"
+    ALLOW_REGISTRATION: bool = True
+
+    # per-user daily message quota (shared-key SaaS model)
+    DAILY_MESSAGE_QUOTA: int = 25
+
+    # observability (optional)
+    SENTRY_DSN: str = ""
+
     # LLM provider (cloud)
     LLM_API_KEY: str = ""
     LLM_BASE_URL: str = "https://api.z.ai/api/paas/v4"
@@ -46,10 +66,26 @@ class Settings(BaseSettings):
         return os.path.join(d, "glm_studio.db")
 
     @property
+    def database_url(self) -> str:
+        """SQLAlchemy URL — Postgres when configured, else a local SQLite file."""
+        raw = (self.DATABASE_URL or "").strip()
+        if raw:
+            if raw.startswith("postgres://"):
+                raw = "postgresql+psycopg://" + raw[len("postgres://"):]
+            elif raw.startswith("postgresql://") and "+psycopg" not in raw:
+                raw = "postgresql+psycopg://" + raw[len("postgresql://"):]
+            return raw
+        return f"sqlite:///{self.db_path}"
+
+    @property
     def uploads_dir(self) -> str:
         d = os.path.join(self.data_dir, "uploads")
         os.makedirs(d, exist_ok=True)
         return d
+
+    @property
+    def is_prod(self) -> bool:
+        return self.APP_ENV.strip().lower() in ("prod", "production")
 
 
 settings = Settings()
