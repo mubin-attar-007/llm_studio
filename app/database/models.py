@@ -1,5 +1,5 @@
 """ORM models."""
-from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy import BigInteger, Column, Integer, String, Text
 
 from app.database.engine import Base
 
@@ -12,22 +12,22 @@ class User(Base):
     display_name = Column(String(120), default="")
     role = Column(String(20), default="user")        # "user" | "admin"
     is_active = Column(Integer, default=1)
-    created = Column(Integer, default=0)             # ms epoch
+    created = Column(BigInteger, default=0)          # ms epoch (needs 64-bit on Postgres)
 
 
 class Session(Base):
     __tablename__ = "sessions"
     id = Column(String(64), primary_key=True)        # opaque session token
     user_id = Column(String(40), nullable=False, index=True)
-    created = Column(Integer, default=0)
-    expires = Column(Integer, default=0, index=True)
-    last_seen = Column(Integer, default=0)
+    created = Column(BigInteger, default=0)
+    expires = Column(BigInteger, default=0, index=True)
+    last_seen = Column(BigInteger, default=0)
 
 
 class UsageDaily(Base):
     __tablename__ = "usage_daily"
     user_id = Column(String(40), primary_key=True)
-    day = Column(Integer, primary_key=True)          # YYYYMMDD (UTC)
+    day = Column(Integer, primary_key=True)          # YYYYMMDD (UTC) — fits in 32-bit
     count = Column(Integer, default=0)
 
 
@@ -37,6 +37,6 @@ class Chat(Base):
     owner_id = Column(String(40), index=True)        # users.id (logical FK; scoped in the repo)
     title = Column(String(255), default="New chat")
     messages = Column(Text, default="[]")            # JSON-encoded message list
-    created = Column(Integer, default=0)             # ms epoch (matches the frontend)
-    updated = Column(Integer, default=0)
+    created = Column(BigInteger, default=0)          # ms epoch (matches the frontend)
+    updated = Column(BigInteger, default=0)
     titled = Column(Integer, default=0)

@@ -26,6 +26,16 @@ def test_chats_scoped_by_owner():
     repository.delete_chat(a, "scoped_chat")
 
 
+def test_epoch_columns_are_64bit():
+    """ms-epoch columns must be BigInteger — Postgres INT4 overflows at ~2.1e9."""
+    from sqlalchemy import BigInteger
+
+    from app.database.models import Chat, Session, User
+    for col in (User.__table__.c.created, Session.__table__.c.expires,
+                Session.__table__.c.created, Chat.__table__.c.created, Chat.__table__.c.updated):
+        assert isinstance(col.type, BigInteger), f"{col} must be BigInteger"
+
+
 def test_usage_increment():
     uid, day = "usage_user", 20260101
     start = repository.usage_today(uid, day)
