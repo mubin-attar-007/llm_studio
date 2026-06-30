@@ -1,7 +1,7 @@
-# GLM Studio — Project Overview & Concepts
+# LLM Studio — Project Overview & Concepts
 ### A plain-English guide for presenting & explaining the project
 
-> **One-line pitch:** *GLM Studio is a private, ChatGPT-style AI chat app that runs on an
+> **One-line pitch:** *LLM Studio is a private, ChatGPT-style AI chat app that runs on an
 > ordinary PC using free AI models — in two modes: **Cloud** (powerful, online) and
 > **Local** (private, offline).*
 
@@ -71,7 +71,7 @@ answering — smarter, but slower.
 ```
    YOUR PC                                        THE CLOUD (Cloudflare, USA)
   ┌─────────────────────────────┐               ┌────────────────────────────┐
-  │  GLM Studio (the app)        │   you type    │                            │
+  │  LLM Studio (the app)        │   you type    │                            │
   │   • a web page in browser    │ ───────────►  │   The AI model runs here   │
   │   • a small Python server    │   (the API)   │   on powerful GPUs         │
   │                              │ ◄───────────  │   (Llama / GLM / Mistral…) │
@@ -125,7 +125,7 @@ There are 5 common ways to use an AI model. We chose **#1 (local)** and **#2 (fr
 > We switch provider by changing 3 lines in a config file — **no code changes.**
 
 ```
-  ┌──────────────────── GLM Studio ────────────────────┐
+  ┌──────────────────── LLM Studio ────────────────────┐
   │  Browser (what you see)      Python (the engine)    │
   │  • index.html                • app.py               │     ┌──────────────┐
   │  • styles.css   ──HTTP──►     • glm_client.py  ──────────►│  ANY provider │
@@ -204,5 +204,5 @@ There are 5 common ways to use an AI model. We chose **#1 (local)** and **#2 (fr
 
 ---
 
-*GLM Studio — built to show that capable, private AI is reachable on everyday hardware,
+*LLM Studio — built to show that capable, private AI is reachable on everyday hardware,
 for free, with the freedom to choose where it runs.*

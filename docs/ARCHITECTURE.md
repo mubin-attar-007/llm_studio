@@ -1,6 +1,6 @@
 # Architecture
 
-GLM Studio is a single-user, local-first chat app. The backend is a **layered FastAPI
+LLM Studio is a single-user, local-first chat app. The backend is a **layered FastAPI
 package** (`app/`); the frontend is vanilla HTML/CSS/JS served by the same process. The
 same OpenAI-compatible client talks to **cloud** (Cloudflare Workers AI) or **local**
 (Ollama) models — chosen per request from the model picker.

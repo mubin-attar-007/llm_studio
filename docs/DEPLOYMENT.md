@@ -1,83 +1,61 @@
-# Deployment & running
+# Deployment
 
-GLM Studio is designed to run **on one machine for one user**, bound to `127.0.0.1`. Pick the
-launch method that fits; all of them serve the same app at <http://127.0.0.1:5000>.
+LLM Studio ships as a single container (`Dockerfile`). The live demo runs on a **Hugging Face
+Docker Space** backed by **Neon Postgres**, but the same image runs on Render, Fly, Railway, or any
+Docker host.
 
-## 1. Windows launchers (easiest)
+## Production architecture
 
-Double-click from `scripts\`:
-
-- **`scripts\run.bat`** — cloud + local models in one picker (default).
-- **`scripts\run_local.bat`** — forces local Ollama only (fully offline). Sets `LLM_*` env
-  vars to `llama3.2:3b` before starting.
-
-Both `cd` to the project root and run `python -m app.main`. Keep the window open; close it to stop.
-
-## 2. From a terminal
-
-```bat
-:: from the project root, with the venv created and deps installed
-.venv\Scripts\python.exe -m app.main
+```
+  Browser ──HTTPS──►  HF Space (Docker)  ──►  uvicorn / FastAPI  ──►  Neon Postgres
+                       app_port 7860            (app.main:app)         (DATABASE_URL)
+                                                      │
+                                                      └──►  shared LLM provider (Cloudflare/…)
 ```
 
-`app.main:main()` starts Uvicorn and opens your browser. For a bare server (e.g. behind your
-own process manager) skip the browser-open with:
+The container runs `uvicorn app.main:app --host 0.0.0.0 --port 7860 --proxy-headers`. On startup the
+app creates its tables (`init_db`) and reads all config from environment variables (the Space
+**secrets**).
 
-```bat
-.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 5000
-```
+## Required secrets
 
-## 3. Docker (archived)
+| Secret | Example | Notes |
+|--------|---------|-------|
+| `DATABASE_URL` | `postgresql://…neon.tech/db?sslmode=require` | Neon pooled connection string |
+| `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL` / `LLM_MODELS` | Cloudflare block | The shared model key |
+| `APP_ENV` | `production` | enables HSTS |
+| `COOKIE_SECURE` | `true` | cookies only over HTTPS |
+| `ALLOW_REGISTRATION` | `true` | open signups for the demo |
+| `DAILY_MESSAGE_QUOTA` | `25` | per-user daily budget |
+| `SENTRY_DSN` | _(optional)_ | error monitoring |
 
-Files live in [../archive/docker/](../archive/docker/). Copy the three files to the project
-root, then:
+> ⚠️ Postgres note: millisecond-epoch columns are `BigInteger` (Postgres `INT4` overflows at ~2.1e9).
+
+## One-command deploy
+
+Secrets live in two **git-ignored** files: `.env.production` (prod config + `DATABASE_URL`) and
+`.deploy/hf_token.txt` (a Hugging Face **write** token). `LLM_*` values are read from your local
+`.env`. Then:
 
 ```bash
-docker compose up --build      # → http://localhost:5000
+.venv/Scripts/python scripts/deploy_space.py
 ```
 
-The image entrypoint is `uvicorn app.main:app`; `/healthz` is the container healthcheck. Pass
-provider config via env or a `.env` beside the compose file. To reach a host-side Ollama from
-the container, the compose maps `OLLAMA_BASE_URL=http://host.docker.internal:11434/v1`.
+This creates/updates the Space (`heisenbergblue/llm_studio`, Docker SDK, public), pushes the Space
+secrets, uploads the code (never the secret files — there's a built-in leak check), and writes the
+Space `README.md` front-matter (`sdk: docker`, `app_port: 7860`). The Space rebuilds automatically.
 
-## 4. Desktop `.exe` (archived)
+## Verify
 
-[../archive/desktop/](../archive/desktop/) builds a native-window single file with PyInstaller +
-pywebview. Build from the project root: `.venv\Scripts\python.exe archive\desktop\build_desktop.py`
-→ `dist\GLM Studio.exe`. **Copy your `.env` next to the `.exe`** (a frozen build reads config
-from the exe's folder).
+```bash
+curl https://heisenbergblue-llm-studio.hf.space/healthz
+# {"ok": true, "db": true, "env": "production", ...}
+```
 
-## Configuration (`.env`)
+Then open the URL, register the **first** account (it becomes the admin, unlimited quota), and chat.
 
-Loaded by [app/core/config.py](../app/core/config.py) (`pydantic-settings`). Key vars:
+## Local / self-host
 
-| Var | Default | Purpose |
-|---|---|---|
-| `HOST` / `PORT` | `127.0.0.1` / `5000` | Bind address. Keep host local for single-user. |
-| `LLM_API_KEY` | — | Cloud key (Cloudflare). May instead live in OS keyring (`set_key.py`). |
-| `LLM_BASE_URL` | Cloudflare gateway | OpenAI-compatible base URL for cloud. |
-| `LLM_MODEL` | `llama-3.3-70b…` | Default cloud model. |
-| `LLM_MODELS` | 24-model list | Comma-separated cloud picker list. |
-| `OLLAMA_BASE_URL` | `http://localhost:11434/v1` | Local provider. |
-| `MAX_TOKENS` | `2048` | Default reply cap. |
-| `LOG_LEVEL` | `info` | Uvicorn/app log level. |
-| `GLM_DB_PATH` | `data/runtime/glm_studio.db` | SQLite location (tests set a throwaway path). |
-
-`.env.example` ships ready-to-paste blocks for **Cloudflare, Groq, Google Gemini, Z.ai,
-Mistral, NVIDIA, Ollama** — the app is OpenAI-compatible, so switching provider is just
-changing these four `LLM_*` values.
-
-> **Secrets:** `.env` and `*.key` are git-ignored. Never commit keys. The keyring option
-> (`archive/desktop/set_key.py`) stores the key encrypted in Windows Credential Manager so you
-> can delete `LLM_API_KEY` from `.env` entirely.
-
-## Data & state
-
-- `data/runtime/` — SQLite DB (chat backups). Git-ignored; safe to delete to reset history.
-- `data/uploads/` — transient extraction scratch (files are removed right after reading).
-- Primary chat history is the **browser's localStorage**, not the server.
-
-## Health & docs
-
-- Liveness: `GET /healthz` → `{"ok": true, …}`.
-- API docs: `/docs` (Swagger) and `/redoc`.
+No `DATABASE_URL` → SQLite at `data/runtime/llm_studio.db`; binds `127.0.0.1`. Run with
+`scripts\run.bat` (Windows) or `uvicorn app.main:app`. For a self-hosted multi-user instance, set a
+`DATABASE_URL`, `COOKIE_SECURE=true`, and serve behind HTTPS.
