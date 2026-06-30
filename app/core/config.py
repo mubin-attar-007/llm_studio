@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     # per-user daily message quota (shared-key SaaS model)
     DAILY_MESSAGE_QUOTA: int = 25
 
+    # uploads / document context
+    MAX_UPLOAD_MB: int = 10
+    MAX_DOC_CHARS: int = 200_000
+
+    # abuse protection (in-memory rate limiting; disable in tests)
+    RATE_LIMIT_ENABLED: bool = True
+
     # observability (optional)
     SENTRY_DSN: str = ""
 

@@ -88,6 +88,34 @@ def test_login_rejects_bad_password(anon_client):
     assert bad.status_code == 401
 
 
+# ---- hardening: uploads + security headers ----
+def test_extract_reads_txt(client):
+    r = client.post("/api/extract", files={"file": ("note.txt", b"hello world", "text/plain")})
+    assert r.status_code == 200
+    assert "hello world" in r.json()["text"]
+
+
+def test_extract_rejects_unsupported_type(client):
+    r = client.post("/api/extract", files={"file": ("malware.exe", b"MZ\x90\x00", "application/octet-stream")})
+    assert r.status_code == 400
+    assert "unsupported" in r.json().get("error", "").lower()
+
+
+def test_extract_rejects_oversized(client, monkeypatch):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "MAX_UPLOAD_MB", 0)
+    r = client.post("/api/extract", files={"file": ("note.txt", b"hello world", "text/plain")})
+    assert r.status_code == 400
+    assert "too large" in r.json().get("error", "").lower()
+
+
+def test_security_headers_present(anon_client):
+    r = anon_client.get("/")
+    assert r.headers.get("X-Content-Type-Options") == "nosniff"
+    assert r.headers.get("X-Frame-Options") == "DENY"
+    assert "default-src 'self'" in r.headers.get("Content-Security-Policy", "")
+
+
 def _authed_client(email):
     """A freshly-registered, authenticated client for a given email."""
     from fastapi.testclient import TestClient

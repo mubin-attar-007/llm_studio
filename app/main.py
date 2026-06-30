@@ -4,6 +4,7 @@ Run:   .venv\\Scripts\\python.exe -m app.main     (or: uvicorn app.main:app)
 Docs:  http://127.0.0.1:5000/docs
 """
 import os
+import time
 
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, Response
@@ -17,9 +18,33 @@ from app.database.engine import init_db
 from app.llm import client as llm
 
 setup_logging()
+
+# Optional error monitoring — only active when a DSN is configured.
+if settings.SENTRY_DSN:
+    try:
+        import sentry_sdk
+        sentry_sdk.init(dsn=settings.SENTRY_DSN, environment=settings.APP_ENV, traces_sample_rate=0.0)
+        log.info("Sentry error monitoring enabled")
+    except Exception as e:  # pragma: no cover - defensive
+        log.warning("Sentry init failed: %s", e)
+
 init_db()
 
 _HERE = os.path.dirname(os.path.abspath(__file__))   # .../app
+
+# Content-Security-Policy — allows the CDNs the frontend actually loads
+# (marked / DOMPurify / highlight.js / KaTeX from jsDelivr, Google Fonts).
+_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
+    "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; "
+    "img-src 'self' data:; "
+    "connect-src 'self'; "
+    "object-src 'none'; "
+    "base-uri 'self'; "
+    "frame-ancestors 'none'"
+)
 
 app = FastAPI(title=settings.APP_NAME, version="1.0.0",
               description="Multi-user AI chat — cloud + local models, one unified app")
@@ -29,12 +54,20 @@ app.include_router(router)
 
 
 @app.middleware("http")
-async def security_headers(request: Request, call_next):
+async def security_and_logging(request: Request, call_next):
+    start = time.perf_counter()
     resp = await call_next(request)
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")
     resp.headers.setdefault("X-Frame-Options", "DENY")
     resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     resp.headers.setdefault("X-XSS-Protection", "0")
+    resp.headers.setdefault("Content-Security-Policy", _CSP)
+    if settings.is_prod:
+        resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    path = request.url.path
+    if not path.startswith("/static") and path != "/healthz":
+        dur = (time.perf_counter() - start) * 1000
+        log.info("%s %s -> %s (%.0f ms)", request.method, path, resp.status_code, dur)
     return resp
 
 

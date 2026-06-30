@@ -3,6 +3,8 @@ import tempfile
 
 # Use a throwaway DB for tests (must be set before app.* is imported).
 os.environ.setdefault("GLM_DB_PATH", os.path.join(tempfile.gettempdir(), "glm_studio_test.db"))
+# The suite makes many register/login calls — don't let the IP rate limiter trip.
+os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
 # Start each test session from a clean database so registration/quota are deterministic.
 try:
     os.remove(os.environ["GLM_DB_PATH"])

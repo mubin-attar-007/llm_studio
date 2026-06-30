@@ -1,7 +1,7 @@
 """Authentication routes — register, login, logout, me."""
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
-from app.api.dependencies import get_current_user
+from app.api.dependencies import get_current_user, rate_limit
 from app.core.config import settings
 from app.core.security import hash_password, new_id, new_token, now_ms, verify_password
 from app.database import repository
@@ -31,7 +31,7 @@ def _issue_session(response: Response, user_id: str) -> None:
     _set_session_cookie(response, token)
 
 
-@auth_router.post("/register", status_code=201)
+@auth_router.post("/register", status_code=201, dependencies=[Depends(rate_limit("auth", 15, 60))])
 def register(req: RegisterRequest, response: Response):
     if not settings.ALLOW_REGISTRATION:
         raise HTTPException(status_code=403, detail="Registration is disabled")
@@ -46,7 +46,7 @@ def register(req: RegisterRequest, response: Response):
     return {**_public_user(user), "quota": quota_service.quota_status(user)}
 
 
-@auth_router.post("/login")
+@auth_router.post("/login", dependencies=[Depends(rate_limit("auth", 15, 60))])
 def login(req: LoginRequest, response: Response):
     user = repository.get_user_by_email(req.email)
     if not user or not verify_password(user["password_hash"], req.password):

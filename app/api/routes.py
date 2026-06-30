@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Body, Depends, File, UploadFile
 from fastapi.responses import JSONResponse
 
-from app.api.dependencies import require_user
+from app.api.dependencies import rate_limit, require_user
 from app.api.streaming import sse_response
 from app.llm import client as llm
 from app.schemas.chat import ChatRequest, TitleRequest
@@ -29,7 +29,7 @@ def chat(req: ChatRequest, user: dict = Depends(require_user)):
     return sse_response(chat_service.stream_chat(messages, req.model, req.max_tokens, req.temperature))
 
 
-@router.post("/extract")
+@router.post("/extract", dependencies=[Depends(rate_limit("extract", 20, 60))])
 async def extract(file: UploadFile = File(...)):
     try:
         name, text = await document_service.extract_upload(file)

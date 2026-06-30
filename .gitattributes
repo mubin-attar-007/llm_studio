@@ -1,0 +1,18 @@
+# Normalize line endings: store text as LF in the repo, check out native locally.
+# Keeps the Linux/Docker deploy and CI consistent regardless of the author's OS.
+* text=auto eol=lf
+
+# Shell scripts must stay LF; Windows batch files must stay CRLF.
+*.sh   text eol=lf
+*.bat  text eol=crlf
+
+# Treat binary assets as binary (no EOL munging, no diff noise).
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.docx binary
+*.woff  binary
+*.woff2 binary
