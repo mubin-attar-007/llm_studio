@@ -20,3 +20,9 @@ ignore = ["E501"]   # long lines are fine in this project
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["F811"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_unused_ignores = false
+exclude = ['archive', '\.venv', 'build', 'dist', 'tests']

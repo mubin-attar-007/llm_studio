@@ -1,0 +1,16 @@
+title = "GLM Studio gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Placeholders and test fixtures — not real secrets"
+paths = [
+  '''\.env\.example$''',
+]
+regexes = [
+  '''password123''',
+  '''your_[a-z_]*_(key|token)''',
+  '''paste-your-key-here''',
+  '''hf_xxx''',
+]
