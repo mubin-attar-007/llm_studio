@@ -15,6 +15,9 @@
   --user-bubble:#f0f0f0;
   --user-text:#0d0d0d;
   --assistant-accent:#10a37f;
+  --accent:#10a37f;
+  --accent-d:#0e8e6d;
+  --bg-alt:#f4f4f4;
   --code-bg:#0d1117;
   --code-text:#e6edf3;
   --danger:#e02e2a;
@@ -37,6 +40,7 @@
   --active:#3a3a3a;
   --user-bubble:#323232;
   --user-text:#ececec;
+  --bg-alt:#1e1e1e;
   --shadow:0 2px 8px rgba(0,0,0,.3);
   --shadow-lg:0 12px 32px rgba(0,0,0,.5);
 }
@@ -357,3 +361,63 @@ kbd{background:var(--hover);border:1px solid var(--border);border-radius:6px;pad
 .cmp-item:hover{background:var(--hover)}
 .cmp-item input{accent-color:var(--accent)}
 .cmp-item .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ===========================================================================
+   Auth screen + per-user account (multi-user SaaS)
+   =========================================================================== */
+body:not(.authed) .app{display:none}
+.auth-screen{display:none;position:fixed;inset:0;z-index:200;flex-direction:column;align-items:center;
+  justify-content:center;gap:20px;padding:24px;overflow:auto;
+  background:radial-gradient(1100px 560px at 50% -8%, rgba(16,163,127,.12), transparent 60%), var(--bg)}
+body.show-auth .auth-screen{display:flex}
+.auth-card{width:min(404px,100%);background:var(--bg);border:1px solid var(--border);border-radius:18px;
+  box-shadow:var(--shadow-lg);padding:30px 28px;animation:fadeIn .35s cubic-bezier(.16,1,.3,1)}
+.auth-brand{text-align:center;margin-bottom:22px}
+.auth-logo{width:52px;height:52px;border-radius:15px;margin:0 auto 13px;display:flex;align-items:center;
+  justify-content:center;color:#fff;font-weight:800;font-size:23px;
+  background:linear-gradient(135deg,#10a37f,#0ea5e9);box-shadow:0 8px 22px rgba(16,163,127,.38)}
+.auth-brand h1{font-size:22px;margin:0 0 5px;font-weight:700;letter-spacing:-.01em}
+.auth-tag{color:var(--text-3);font-size:14px;margin:0}
+.auth-form{display:flex;flex-direction:column;gap:14px}
+.auth-field{display:flex;flex-direction:column;gap:6px}
+.auth-field label{font-size:13px;font-weight:600;color:var(--text-2)}
+.auth-field label span{color:var(--text-3);font-weight:400}
+.auth-field input{border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);
+  font:inherit;font-size:15px;padding:11px 13px;outline:none;transition:border-color .15s,box-shadow .15s}
+.auth-field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(16,163,127,.16)}
+.auth-hint{font-size:12px;color:var(--text-3)}
+.auth-error{background:#fdecec;border:1px solid #f0a8a8;color:#8a1f1c;border-radius:10px;padding:9px 12px;font-size:13px}
+[data-theme="dark"] .auth-error{background:#3a1d1d;border-color:#6b2b2b;color:#f3b4b4}
+.auth-submit{margin-top:4px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-size:15px;
+  font-weight:600;padding:12px;cursor:pointer;transition:filter .15s,opacity .15s;position:relative}
+.auth-submit:hover{filter:brightness(1.06)}
+.auth-submit:disabled{opacity:.7;cursor:default}
+.auth-submit.loading{color:transparent}
+.auth-submit.loading::after{content:"";position:absolute;inset:0;margin:auto;width:18px;height:18px;
+  border:2px solid rgba(255,255,255,.5);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.auth-toggle{margin-top:18px;text-align:center;font-size:14px;color:var(--text-3)}
+.auth-toggle button{background:none;border:none;color:var(--accent);font-weight:600;cursor:pointer;font-size:14px;padding:0 0 0 5px}
+.auth-toggle button:hover{text-decoration:underline}
+.auth-foot{color:var(--text-3);font-size:12px;text-align:center;max-width:420px}
+
+/* sidebar account box */
+.sb-user{padding:8px;border-top:1px solid var(--border);position:relative}
+.user-btn{display:flex;align-items:center;gap:10px;width:100%;border:none;background:transparent;cursor:pointer;
+  padding:7px 8px;border-radius:10px;color:var(--text);text-align:left}
+.user-btn:hover{background:var(--hover)}
+.user-av{width:30px;height:30px;border-radius:50%;flex:0 0 30px;display:flex;align-items:center;
+  justify-content:center;color:#fff;font-weight:700;font-size:13px;background:linear-gradient(135deg,#10a37f,#0ea5e9)}
+.user-meta{display:flex;flex-direction:column;min-width:0;line-height:1.3}
+.user-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-quota{font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-quota.low{color:#d97706;font-weight:600}
+.user-menu{position:absolute;bottom:56px;left:8px;right:8px;background:var(--bg);border:1px solid var(--border);
+  border-radius:12px;box-shadow:var(--shadow-lg);padding:6px;display:none;z-index:60}
+.user-menu.open{display:block}
+.user-menu .opt{padding:9px 10px;border-radius:8px;cursor:pointer;font-size:14px;color:var(--text)}
+.user-menu .opt:hover{background:var(--hover)}
+.user-menu .opt#accountInfo{cursor:default;color:var(--text-3);font-size:12px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;border-bottom:1px solid var(--border);border-radius:0;margin-bottom:4px}
+.user-menu .opt#accountInfo:hover{background:transparent}
+.user-menu .opt#logoutBtn{color:var(--danger)}

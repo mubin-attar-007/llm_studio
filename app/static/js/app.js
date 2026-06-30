@@ -16,8 +16,9 @@ const KIND = {};        // id -> "cloud"|"local"
 let pendingFile = null, generating = false, stick = true, aborts = [], recog = null, recording = false;
 
 let state = {
-  chats: JSON.parse(localStorage.getItem("glm_chats") || "[]"),
-  current: localStorage.getItem("glm_current") || null,
+  user: null, quota: null, uid: null,
+  chats: [],
+  current: null,
   model: localStorage.getItem("glm_model") || "",
   theme: localStorage.getItem("glm_theme") || "system",
   search: "",
@@ -70,7 +71,11 @@ function openModelMenu(){ closeModals(); $("#modelMenu").classList.add("open"); 
 function uid(){ return "c" + Math.random().toString(36).slice(2,10); }
 let _syncT=null;
 function syncDB(){ clearTimeout(_syncT); _syncT=setTimeout(()=>{ fetch("/api/chats",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(state.chats)}).catch(()=>{}); }, 900); }
-function saveChats(){ localStorage.setItem("glm_chats", JSON.stringify(state.chats)); localStorage.setItem("glm_current", state.current || ""); syncDB(); }
+function saveChats(){
+  if(state.uid){ localStorage.setItem("glm_chats_"+state.uid, JSON.stringify(state.chats));
+    localStorage.setItem("glm_current_"+state.uid, state.current || ""); }
+  syncDB();
+}
 function curChat(){ return state.chats.find(c => c.id === state.current); }
 function migrate(){ let ch=false; state.chats.forEach(c=>{ if(!c.created){c.created=Date.now();ch=true;} if(!c.updated){c.updated=c.created;ch=true;} }); if(ch) saveChats(); }
 function newChat(){ const c={id:uid(), title:"New chat", messages:[], created:Date.now(), updated:Date.now()}; state.chats.unshift(c); state.current=c.id; pendingFile=null; renderAttach(); saveChats(); renderSidebar(); renderThread(); $("#input").focus(); }
@@ -233,6 +238,13 @@ function apiHistory(c, upto){
 async function streamInto(messages, model, ctrl, cb){
   const res = await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({messages, model, max_tokens:state.settings.maxTokens, temperature:state.settings.temperature}), signal:ctrl.signal});
+  if(!res.ok){
+    let msg="Request failed ("+res.status+").";
+    try{ const j=await res.json(); if(j.error) msg=j.error; if(j.quota) updateQuota(j.quota); }catch(e){}
+    if(res.status===401){ msg="Your session expired — reloading…"; setTimeout(()=>location.reload(),1200); }
+    cb.onError(msg); return;
+  }
+  consumeQuotaLocal();
   const reader=res.body.getReader(); const dec=new TextDecoder(); let buf="";
   while(true){
     const {value,done}=await reader.read(); if(done) break;
@@ -415,7 +427,8 @@ function setupVoice(){
 /* ----------------------------- ui glue ---------------------------------- */
 function autoGrow(){ const t=$("#input"); t.style.height="auto"; t.style.height=Math.min(t.scrollHeight,200)+"px"; }
 function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),2000); }
-function closeAllMenus(){ $("#modelMenu").classList.remove("open"); $("#ctxMenu")?.classList.remove("open"); }
+function closeAllMenus(){ $("#modelMenu").classList.remove("open"); $("#ctxMenu")?.classList.remove("open");
+  $("#userMenu")?.classList.remove("open"); $("#userBtn")?.setAttribute("aria-expanded","false"); }
 function closeModals(){ document.querySelectorAll(".overlay").forEach(o=>o.classList.remove("open")); }
 function openModal(id){ closeModals(); $("#"+id).classList.add("open"); }
 function toggleSidebar(){ const sb=$("#sidebar"); sb.classList.toggle("collapsed"); const mobile=innerWidth<760; $("#backdrop").classList.toggle("show", mobile && !sb.classList.contains("collapsed")); }
@@ -424,7 +437,6 @@ async function init(){
   const ctx=document.createElement("div"); ctx.className="menu"; ctx.id="ctxMenu"; ctx.style.position="fixed"; document.body.appendChild(ctx);
   applyTheme(state.theme); migrate();
   await loadModels();
-  if(!state.chats.length){ try{ const d=await (await fetch("/api/chats")).json(); if(d.chats&&d.chats.length){ state.chats=d.chats; saveChats(); } }catch(e){} }
   if(!state.chats.length) newChat(); else if(!state.current) state.current=state.chats[0].id;
   renderSidebar(); renderThread(); updateSendBtn(); wireSettings(); setupVoice(); updateCompareUI();
   if(innerWidth<760) $("#sidebar").classList.add("collapsed");
@@ -435,6 +447,8 @@ async function init(){
   $("#compareBtn").onclick=toggleCompare;
   $("#settingsBtn").onclick=()=>openModal("settingsModal");
   $("#helpBtn").onclick=()=>openModal("helpModal");
+  $("#userBtn").onclick=e=>{ e.stopPropagation(); const open=$("#userMenu").classList.toggle("open"); $("#userBtn").setAttribute("aria-expanded", open?"true":"false"); };
+  $("#logoutBtn").onclick=logout;
   $("#scrollBtn").onclick=scrollToBottom;
   $("#attachBtn").onclick=()=>$("#fileInput").click();
   $("#fileInput").onchange=e=>{ uploadFile(e.target.files[0]); e.target.value=""; };
@@ -463,4 +477,95 @@ async function init(){
     else if(mod && e.key==="/"){ e.preventDefault(); openModal("helpModal"); }
   });
 }
-init();
+
+/* ----------------------------- auth / account --------------------------- */
+let _authMode="login", _appStarted=false;
+
+async function checkAuth(){
+  try{ const r=await fetch("/api/auth/me"); if(r.ok) return await r.json(); }catch(e){}
+  return null;
+}
+function authError(msg){ const e=$("#authError"); if(!e) return; e.textContent=msg||""; e.hidden=!msg; }
+function setAuthMode(mode){
+  _authMode=mode; const reg=mode==="register";
+  $("#nameField").hidden=!reg; $("#pwHint").hidden=!reg;
+  $("#authSubmit").textContent=reg?"Create account":"Sign in";
+  $("#authToggleText").textContent=reg?"Already have an account?":"New here?";
+  $("#authToggleBtn").textContent=reg?"Sign in":"Create an account";
+  $("#authPassword").setAttribute("autocomplete", reg?"new-password":"current-password");
+  authError("");
+}
+function showAuth(){
+  document.body.classList.remove("authed"); document.body.classList.add("show-auth");
+  $("#authScreen").hidden=false; setTimeout(()=>$("#authEmail").focus(),60);
+}
+function authMessage(d){
+  if(typeof d.detail==="string") return d.detail;
+  if(Array.isArray(d.detail) && d.detail[0]?.msg) return d.detail[0].msg.replace(/^Value error,?\s*/i,"");
+  return "Something went wrong. Please try again.";
+}
+async function submitAuth(ev){
+  ev.preventDefault();
+  const email=$("#authEmail").value.trim(), password=$("#authPassword").value, name=$("#authName").value.trim();
+  if(!email||!password){ authError("Please enter your email and password."); return; }
+  if(_authMode==="register" && password.length<8){ authError("Password must be at least 8 characters."); return; }
+  const btn=$("#authSubmit"); btn.disabled=true; btn.classList.add("loading"); authError("");
+  const path=_authMode==="register"?"/api/auth/register":"/api/auth/login";
+  const body=_authMode==="register"?{email,password,display_name:name}:{email,password};
+  try{
+    const r=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok){ authError(authMessage(d)); btn.disabled=false; btn.classList.remove("loading"); return; }
+    await enterApp(d);
+  }catch(e){ authError("Network error. Please try again."); btn.disabled=false; btn.classList.remove("loading"); }
+}
+async function logout(){ try{ await fetch("/api/auth/logout",{method:"POST"}); }catch(e){} location.reload(); }
+
+function renderUser(){
+  const u=state.user||{}; const name=u.display_name||u.email||"You";
+  $("#userName").textContent=name;
+  $("#userAv").textContent=(name.trim()[0]||"U").toUpperCase();
+  $("#accountInfo").textContent=u.email||"";
+  updateQuota(state.quota);
+}
+function updateQuota(q){
+  if(q) state.quota=q;
+  const el=$("#userQuota"); if(!el) return;
+  if(!state.quota){ el.textContent=""; return; }
+  if(state.quota.unlimited){ el.textContent="Unlimited"; el.classList.remove("low"); return; }
+  const rem=state.quota.remaining??0;
+  el.textContent=rem+" message"+(rem===1?"":"s")+" left today";
+  el.classList.toggle("low", rem<=3);
+}
+function consumeQuotaLocal(){
+  if(!state.quota || state.quota.unlimited) return;
+  state.quota.used=(state.quota.used||0)+1;
+  state.quota.remaining=Math.max(0,(state.quota.remaining??0)-1);
+  updateQuota(state.quota);
+}
+async function loadHistory(uid){
+  const ck="glm_chats_"+uid;
+  let local=[]; try{ local=JSON.parse(localStorage.getItem(ck)||"[]"); }catch(e){}
+  if(!local.length){ try{ const legacy=JSON.parse(localStorage.getItem("glm_chats")||"[]"); if(legacy.length) local=legacy; }catch(e){} }
+  let server=[]; try{ const d=await (await fetch("/api/chats")).json(); server=d.chats||[]; }catch(e){}
+  state.chats=server.length?server:local;
+  state.current=localStorage.getItem("glm_current_"+uid) || (state.chats[0]&&state.chats[0].id) || null;
+  if(!server.length && local.length) syncDB();   // migrate local chats up to the server
+}
+async function enterApp(me){
+  state.user=me; state.quota=me.quota||null; state.uid=me.id;
+  document.body.classList.remove("show-auth"); document.body.classList.add("authed");
+  $("#authScreen").hidden=true;
+  renderUser();
+  await loadHistory(me.id);
+  if(!_appStarted){ _appStarted=true; await init(); }
+}
+async function boot(){
+  applyTheme(state.theme);
+  $("#authForm").addEventListener("submit", submitAuth);
+  $("#authToggleBtn").addEventListener("click", ()=> setAuthMode(_authMode==="login"?"register":"login"));
+  setAuthMode("login");
+  const me=await checkAuth();
+  if(me) await enterApp(me); else showAuth();
+}
+boot();
