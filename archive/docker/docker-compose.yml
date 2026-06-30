@@ -1,0 +1,18 @@
+# Run with:  docker compose up --build   →  http://localhost:5000
+services:
+  glm-studio:
+    build: .
+    image: glm-studio:latest
+    ports:
+      - "5000:5000"
+    environment:
+      # Pass your provider config in (or use a .env file alongside this compose).
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_BASE_URL=${LLM_BASE_URL:-}
+      - LLM_MODEL=${LLM_MODEL:-}
+      - LLM_MODELS=${LLM_MODELS:-}
+      # Reach a local Ollama running on the host machine from inside the container:
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434/v1}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped

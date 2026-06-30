@@ -1,0 +1,6 @@
+-r requirements.txt
+pytest>=8.0
+ruff>=0.5
+# Desktop packaging (build a single .exe via make_desktop.bat)
+pyinstaller>=6.0
+pywebview>=5.0

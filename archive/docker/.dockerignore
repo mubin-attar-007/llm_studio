@@ -1,0 +1,14 @@
+.venv
+venv
+__pycache__
+*.pyc
+.git
+.github
+tests
+dist
+build
+*.db
+.env
+*.spec
+README*.md
+PROJECT_OVERVIEW.md
