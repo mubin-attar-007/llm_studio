@@ -1,0 +1,30 @@
+# Secrets — never bake into the image
+.env
+.env.*
+!.env.example
+.deploy/
+*.key
+
+# VCS / Python caches / venv
+.git
+.gitattributes
+.venv
+venv
+__pycache__
+**/__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+
+# Not needed at runtime
+tests
+docs
+archive
+.github
+scripts
+
+# Runtime data + local DBs
+data/runtime/*
+data/uploads/*
+data/documents/*
+*.db
