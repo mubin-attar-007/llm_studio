@@ -299,7 +299,7 @@ kbd{background:var(--hover);border:1px solid var(--border);border-radius:6px;pad
   .empty-hero h1{font-size:24px}
 }
 
-/* ===== Enhancements: settings · compare · thinking · badge · mic · errors ===== */
+/* ===== Enhancements: settings · thinking · badge · mic · errors ===== */
 .set-row{margin-bottom:18px}
 .set-row>label{display:block;font-size:14px;font-weight:600;margin-bottom:8px}
 .set-row label .hint{color:var(--text-3);font-weight:400;font-size:12px}
@@ -339,28 +339,6 @@ kbd{background:var(--hover);border:1px solid var(--border);border-radius:6px;pad
 
 .icon-btn.active{background:var(--accent);color:#fff}
 .icon-btn.active:hover{background:var(--accent-d)}
-
-.compare-bar{display:none;max-width:var(--maxw);margin:0 auto 8px;align-items:center;gap:8px;flex-wrap:wrap}
-.compare-bar.show{display:flex}
-.compare-bar .cb-label{font-size:12px;color:var(--text-3);font-weight:600}
-.cmp-chip{display:inline-flex;align-items:center;gap:6px;background:var(--hover);border-radius:999px;
-  padding:5px 10px;font-size:12px}
-.cmp-chip .x{cursor:pointer;color:var(--text-3)}
-.cb-edit{border:1px dashed var(--border);background:transparent;color:var(--text-2);border-radius:999px;
-  padding:5px 12px;font-size:12px;cursor:pointer}
-.cb-edit:hover{background:var(--hover)}
-
-.cmp-cols{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
-.cmp-col{border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
-.cmp-col-head{padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg-alt);
-  font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px}
-.cmp-col .content{padding:12px;font-size:14.5px}
-
-.compare-list{display:flex;flex-direction:column;gap:2px;max-height:60vh;overflow:auto}
-.cmp-item{display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:8px;cursor:pointer;font-size:14px}
-.cmp-item:hover{background:var(--hover)}
-.cmp-item input{accent-color:var(--accent)}
-.cmp-item .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* ===========================================================================
    Auth screen + per-user account (multi-user SaaS)

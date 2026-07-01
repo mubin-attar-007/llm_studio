@@ -1,4 +1,4 @@
-/* LLM Studio — ChatGPT-style frontend (with settings, compare, thinking, voice) */
+/* LLM Studio — ChatGPT-style frontend (settings, thinking, voice) */
 const $ = s => document.querySelector(s);
 const DEFAULT_PERSONA = "You are a helpful, knowledgeable assistant. Use Markdown (tables, lists, fenced code blocks with language tags, and LaTeX math with $...$ or $$...$$) when useful.";
 
@@ -24,7 +24,6 @@ let state = {
   search: "",
   settings: Object.assign({maxTokens:4096, temperature:0.7, persona:DEFAULT_PERSONA},
                           JSON.parse(localStorage.getItem("llm_settings") || "{}")),
-  compare: Object.assign({on:false, models:[]}, JSON.parse(localStorage.getItem("llm_compare") || "{}")),
 };
 
 marked.setOptions({ breaks:true, gfm:true });
@@ -149,17 +148,6 @@ function rowHtml(m,i,total){
       <div class="msg-actions"><button class="act" title="Copy" onclick="copyMsg(${i})">${IC.copy}</button>
       <button class="act" title="Edit" onclick="editMsg(${i})">${IC.edit}</button></div></div></div>`;
   }
-  if(m.compare){
-    const cols = m.compare.map((e,ci)=>{
-      const inner = e.error
-        ? `${e.content?renderMd(e.content):""}<div class="err-card">⚠️ ${escapeHtml(e.error)}</div>`
-        : (e.content ? renderMd(e.content)+(e._streaming?'<span class="cursor"></span>':"")
-                     : (e._streaming?'<span class="thinking"><i></i><i></i><i></i></span>':'<span style="color:var(--text-3)">…</span>'));
-      const think = e.thinking ? `<details class="think"><summary>Thoughts</summary><div class="tk">${escapeHtml(e.thinking)}</div></details>` : "";
-      return `<div class="cmp-col" data-ci="${ci}"><div class="cmp-col-head">${badgeHtml(e.model)}</div><div class="content" data-md="1">${think}${inner}</div></div>`;
-    }).join("");
-    return `<div class="row assistant" data-i="${i}"><div class="avatar">L</div><div class="asst"><div class="cmp-cols">${cols}</div></div></div>`;
-  }
   // single assistant
   const last = i===total-1;
   const mid = m.model || state.model;
@@ -220,8 +208,7 @@ function regen(){
   dispatchRun(c, false);
 }
 function dispatchRun(c, maybeTitle){
-  if(state.compare.on && state.compare.models.length>=2) runCompare(c, maybeTitle);
-  else runCompletion(c, maybeTitle);
+  runCompletion(c, maybeTitle);
 }
 
 /* ----------------------------- send / stream ---------------------------- */
@@ -230,7 +217,6 @@ function apiHistory(c, upto){
   const out=[sysMsg()];
   for(let i=0;i<upto;i++){ const m=c.messages[i];
     if(m.role==="user") out.push({role:"user", content:m.content});
-    else if(m.compare){ const f=m.compare.find(x=>x.content); if(f) out.push({role:"assistant", content:f.content}); }
     else if(m.content) out.push({role:"assistant", content:m.content});
   }
   return out;
@@ -290,26 +276,6 @@ async function runCompletion(c, maybeTitle){
   setGenerating(false); c.updated=Date.now(); saveChats(); renderThread(); renderSidebar();
   if(maybeTitle) autoTitle(c);
 }
-async function runCompare(c, maybeTitle){
-  const models=state.compare.models.slice(0,3);
-  const bot={role:"assistant", compare: models.map(m=>({model:m, content:"", thinking:"", error:"", _streaming:true}))};
-  c.messages.push(bot); const bi=c.messages.length-1;
-  c.updated=Date.now(); saveChats(); renderSidebar(); renderThread(); setGenerating(true);
-  const msgs=apiHistory(c, bi);
-  aborts = models.map(()=>new AbortController());
-  await Promise.all(models.map((model,ci)=>{
-    const entry=bot.compare[ci];
-    const col=document.querySelector(`.row[data-i="${bi}"] .cmp-col[data-ci="${ci}"] .content`);
-    return streamInto(msgs, model, aborts[ci], {
-      onToken:(t)=>{ entry.content+=t; if(col){ col.innerHTML=renderMd(entry.content)+'<span class="cursor"></span>'; smartScroll(); } },
-      onThink:(t)=>{ entry.thinking+=t; },
-      onError:(e)=>{ entry.error=e; if(col){ col.innerHTML=renderMd(entry.content)+`<div class="err-card">⚠️ ${escapeHtml(e)}</div>`; } },
-    }).catch(e=>{ if(e.name!=="AbortError") entry.error=e.message; });
-  }));
-  bot.compare.forEach(e=>{ e._streaming=false; if(!e.content.trim() && !e.error) e.error="No text returned."; });
-  setGenerating(false); c.updated=Date.now(); saveChats(); renderThread(); renderSidebar();
-  if(maybeTitle) autoTitle(c);
-}
 function setGenerating(on){
   generating=on; const b=$("#sendBtn");
   if(on){ b.disabled=false; b.classList.add("stop"); b.innerHTML=ICON_STOP; b.title="Stop"; }
@@ -344,7 +310,7 @@ async function autoTitle(c){
   if(!c || c.titled) return;
   const u=c.messages.find(m=>m.role==="user");
   const a=c.messages.find(m=>m.role==="assistant");
-  const aContent = a ? (a.content || (a.compare && a.compare[0] && a.compare[0].content) || "") : "";
+  const aContent = a ? (a.content || "") : "";
   if(!u || !aContent) return;
   c.titled=true; saveChats();
   const titleModel = (MODELS.find(m=>/flash|lite|mini|small|turbo|1b|3b|8b|9b/i.test(m.id))||{}).id || state.model;
@@ -358,48 +324,10 @@ function exportChat(id){
   let md=`# ${c.title}\n\n`;
   c.messages.forEach(m=>{
     if(m.role==="user") md += `**You:**\n\n${m.display!=null?m.display:m.content}\n\n---\n\n`;
-    else if(m.compare) m.compare.forEach(e=> md += `**Assistant (${shortName(e.model)}):**\n\n${e.content||e.error}\n\n---\n\n`);
     else md += `**Assistant (${shortName(m.model||"")}):**\n\n${m.content}\n\n---\n\n`;
   });
   const b=new Blob([md],{type:"text/markdown"}); const u=URL.createObjectURL(b);
   const a=document.createElement("a"); a.href=u; a.download=(c.title.replace(/[^\w]+/g,"_")||"chat")+".md"; a.click(); URL.revokeObjectURL(u);
-}
-
-/* ----------------------------- compare UI ------------------------------- */
-function saveCompare(){ localStorage.setItem("llm_compare", JSON.stringify(state.compare)); }
-function toggleCompare(){
-  state.compare.on=!state.compare.on;
-  if(state.compare.on && state.compare.models.length<2){
-    const ids=MODELS.map(m=>m.id); const seed=[];
-    if(state.model) seed.push(state.model);
-    const alt=ids.find(id=>id!==state.model && /llama|mistral|gemma|gpt-oss-20b|flash|3b/i.test(id));
-    if(alt) seed.push(alt);
-    state.compare.models=[...new Set(seed)].slice(0,3);
-  }
-  saveCompare(); updateCompareUI();
-}
-function updateCompareUI(){
-  $("#compareBtn").classList.toggle("active", state.compare.on);
-  $("#compareBtn").title = "Compare models ("+(state.compare.on?"on":"off")+")";
-  const bar=$("#compareBar"); bar.classList.toggle("show", state.compare.on);
-  if(state.compare.on){
-    bar.innerHTML = `<span class="cb-label">Compare:</span>` +
-      state.compare.models.map(id=>`<span class="cmp-chip">${escapeHtml(shortName(id))} <span class="x" onclick="removeCompare('${id}')">✕</span></span>`).join("") +
-      `<button class="cb-edit" onclick="openCompareModal()">✎ choose models</button>`;
-  }
-}
-function removeCompare(id){ state.compare.models=state.compare.models.filter(x=>x!==id); saveCompare(); updateCompareUI(); }
-function openCompareModal(){
-  $("#compareList").innerHTML = MODELS.map(m=>{
-    const checked = state.compare.models.includes(m.id)?"checked":"";
-    return `<label class="cmp-item"><input type="checkbox" ${checked} onchange="toggleCompareModel('${m.id}',this)"><span class="nm">${escapeHtml(shortName(m.id))}</span><span class="tag-kind ${m.kind}">${m.kind}</span></label>`;
-  }).join("");
-  openModal("compareModal");
-}
-function toggleCompareModel(id, el){
-  if(el.checked){ if(state.compare.models.length>=3){ toast("Pick up to 3"); el.checked=false; return; } if(!state.compare.models.includes(id)) state.compare.models.push(id); }
-  else state.compare.models=state.compare.models.filter(x=>x!==id);
-  saveCompare(); updateCompareUI();
 }
 
 /* ----------------------------- settings / voice ------------------------- */
@@ -438,13 +366,12 @@ async function init(){
   applyTheme(state.theme); migrate();
   loadModels();   // fire-and-forget: render the UI instantly; the picker fills in when ready
   if(!state.chats.length) newChat(); else if(!state.current) state.current=state.chats[0].id;
-  renderSidebar(); renderThread(); updateSendBtn(); wireSettings(); setupVoice(); updateCompareUI();
+  renderSidebar(); renderThread(); updateSendBtn(); wireSettings(); setupVoice();
   if(innerWidth<760) $("#sidebar").classList.add("collapsed");
 
   $("#newChatBtn").onclick=newChat; $("#newChatIcon").onclick=newChat;
   $("#sidebarToggle").onclick=toggleSidebar; $("#backdrop").onclick=toggleSidebar;
   $("#modelBtn").onclick=e=>{ e.stopPropagation(); const m=$("#modelMenu"); const open=m.classList.contains("open"); closeAllMenus(); if(!open) m.classList.add("open"); };
-  $("#compareBtn").onclick=toggleCompare;
   $("#settingsBtn").onclick=()=>openModal("settingsModal");
   $("#helpBtn").onclick=()=>openModal("helpModal");
   $("#userBtn").onclick=e=>{ e.stopPropagation(); const open=$("#userMenu").classList.toggle("open"); $("#userBtn").setAttribute("aria-expanded", open?"true":"false"); };
