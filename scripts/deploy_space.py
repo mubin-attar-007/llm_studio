@@ -65,8 +65,9 @@ def main() -> None:
         if prod.get(k):
             secrets[k] = prod[k]
     for k in ("LLM_API_KEY", "LLM_BASE_URL", "LLM_MODEL", "LLM_MODELS"):
-        if local.get(k):
-            secrets[k] = local[k]
+        v = prod.get(k) or local.get(k)   # prod (.env.production) wins over local .env
+        if v:
+            secrets[k] = v
 
     api = HfApi(token=token)
     api.create_repo(REPO_ID, repo_type="space", space_sdk="docker", private=False, exist_ok=True)
