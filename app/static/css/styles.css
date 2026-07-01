@@ -495,14 +495,17 @@ button,.chat-item,.ex,.menu .opt,input,textarea,.icon-btn,.round,.user-btn,.newc
 .code-head{background:#2f2f2f;color:#b4b4b4}
 .code-copy{color:#b4b4b4}
 
-/* ---- Composer ---- */
-.composer{border-radius:26px;box-shadow:0 2px 12px rgba(0,0,0,.06);padding:9px 9px 9px 14px}
+/* ---- Composer ---- (substantial rounded box, not a thin pill) */
+.composer{border-radius:28px;box-shadow:0 2px 12px rgba(0,0,0,.06);padding:11px 12px 11px 16px;align-items:center}
 .composer:focus-within{border-color:var(--text-3);box-shadow:0 2px 18px rgba(0,0,0,.12)}
-.composer textarea{font-size:16px;line-height:1.5;padding:9px 4px}
+.composer textarea{font-size:16px;line-height:1.5;padding:8px 6px;min-height:28px}
+.composer-wrap{padding-bottom:20px}
 .send{box-shadow:none}
 .send:not(:disabled):not(.stop):hover{background:var(--accent-d)}
 
-/* ---- Empty state ---- */
+/* ---- Empty state ---- (greeting+composer centered, but header stays pinned top) */
+.main{position:relative}
+.main.empty .topbar{position:absolute;top:0;left:0;right:0;z-index:5}
 .empty-hero h1{font-size:28px;line-height:1.2;font-weight:500;letter-spacing:-.01em;color:var(--text);
   background:none;-webkit-text-fill-color:currentColor;margin:0 0 24px}
 @media(max-width:640px){.empty-hero h1{font-size:24px}}
@@ -514,6 +517,7 @@ button,.chat-item,.ex,.menu .opt,input,textarea,.icon-btn,.round,.user-btn,.newc
 .auth-submit:hover{background:var(--accent-d);transform:none}
 .auth-submit.loading::after{border-color:transparent;border-top-color:currentColor}  /* visible on white (dark theme) */
 .auth-field input:focus{border-color:var(--text-3);box-shadow:0 0 0 3px var(--ring)}
+.auth-field[hidden]{display:none}   /* [hidden] must beat .auth-field{display:flex} */
 .auth-card{border-radius:20px}
 .chat-item input.rename{border-color:var(--text-3)}   /* neutral, not brand-green */
 .theme-opts button.sel{border-color:var(--accent)}

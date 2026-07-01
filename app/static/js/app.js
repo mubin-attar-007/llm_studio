@@ -436,7 +436,7 @@ function toggleSidebar(){ const sb=$("#sidebar"); sb.classList.toggle("collapsed
 async function init(){
   const ctx=document.createElement("div"); ctx.className="menu"; ctx.id="ctxMenu"; ctx.style.position="fixed"; document.body.appendChild(ctx);
   applyTheme(state.theme); migrate();
-  await loadModels();
+  loadModels();   // fire-and-forget: render the UI instantly; the picker fills in when ready
   if(!state.chats.length) newChat(); else if(!state.current) state.current=state.chats[0].id;
   renderSidebar(); renderThread(); updateSendBtn(); wireSettings(); setupVoice(); updateCompareUI();
   if(innerWidth<760) $("#sidebar").classList.add("collapsed");
