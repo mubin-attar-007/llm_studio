@@ -1,8 +1,17 @@
 """Chat orchestration — streaming completions and title generation."""
 import time
 
+from openai import APITimeoutError
+
 from app.core.config import settings
-from app.core.constants import BALANCE_ERROR, ERR_INTERRUPTED, ERR_NEEDS_CREDIT, ERR_NO_TEXT
+from app.core.constants import (
+    BALANCE_ERROR,
+    ERR_INTERRUPTED,
+    ERR_NEEDS_CREDIT,
+    ERR_NO_TEXT,
+    ERR_RATE_LIMITED,
+    ERR_TIMEOUT,
+)
 from app.llm import client as llm
 from app.llm import prompts
 
@@ -60,12 +69,23 @@ def stream_chat(messages, model=None, max_tokens=None, temperature=None):
             return
         except Exception as e:
             msg = str(e)
+            if llm.is_quota_error(e):
+                yield {"error": ERR_RATE_LIMITED}
+                yield {"done": True}
+                return
             if BALANCE_ERROR in msg:
                 yield {"error": ERR_NEEDS_CREDIT}
                 yield {"done": True}
                 return
             if produced:
                 yield {"error": ERR_INTERRUPTED}
+                yield {"done": True}
+                return
+            if isinstance(e, APITimeoutError):
+                if attempt == 0:
+                    time.sleep(1.0)
+                    continue
+                yield {"error": ERR_TIMEOUT}
                 yield {"done": True}
                 return
             if attempt == 0 and llm.is_transient(e):

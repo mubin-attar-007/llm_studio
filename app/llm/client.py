@@ -1,6 +1,6 @@
 """Unified LLM client — routes each model to the cloud or local Ollama."""
 from app.core.config import settings
-from app.core.constants import BALANCE_ERROR, SERVICE_NAME, TRANSIENT_MARKERS
+from app.core.constants import BALANCE_ERROR, QUOTA_MARKERS, SERVICE_NAME, TRANSIENT_MARKERS
 from app.core.exceptions import NoCloudKeyError
 from app.llm.providers import glm, ollama
 from app.llm.providers.openai import make_client
@@ -28,11 +28,17 @@ _CLOUD_IS_OLLAMA = ollama.is_ollama_base(CLOUD_BASE)
 
 
 def is_transient(err) -> bool:
-    """True for retryable errors (overload/timeout); False for balance (1113)."""
+    """True for retryable errors (overload/5xx); False for balance/quota."""
     s = str(err)
-    if BALANCE_ERROR in s:
+    if BALANCE_ERROR in s or is_quota_error(err):
         return False
     return any(k in s for k in TRANSIENT_MARKERS)
+
+
+def is_quota_error(err) -> bool:
+    """True when the provider's free allocation / rate limit is exhausted (don't retry)."""
+    s = str(err).lower()
+    return any(k in s for k in QUOTA_MARKERS)
 
 
 def list_models():
