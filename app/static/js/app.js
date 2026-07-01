@@ -57,9 +57,8 @@ async function loadModels(){
 }
 function renderModelMenu(){
   $("#modelMenu").innerHTML = MODELS.map(m => {
-    const slow = isReasoning(m.id);
-    const cur = m.id === state.model ? " sel" : "";
-    return `<div class="opt${cur}" onclick="pickModel('${m.id}')"><span class="opt-name">${escapeHtml(shortName(m.id))}</span><span class="opt-tags"><span class="tag-kind ${m.kind}">${m.kind}</span>${slow?'<span class="tag-slow">thinks</span>':''}</span></div>`;
+    const sel = m.id === state.model;
+    return `<div class="opt${sel?' sel':''}" onclick="pickModel('${m.id}')"><span class="opt-name">${escapeHtml(shortName(m.id))}</span>${sel?'<span class="opt-check">✓</span>':''}</div>`;
   }).join("");
 }
 function pickModel(id){ state.model = id; localStorage.setItem("llm_model", id); updateModelLabel(); renderModelMenu(); closeAllMenus(); }
@@ -151,7 +150,7 @@ function rowHtml(m,i,total){
   // single assistant
   const last = i===total-1;
   const mid = m.model || state.model;
-  let inner = `<div class="msg-meta">${badgeHtml(mid)}</div>`;
+  let inner = "";   // no per-message model badge (ChatGPT doesn't show one)
   if(m.thinking || (m._streaming && isReasoning(mid))){
     inner += `<details class="think"${m._streaming?" open":""}><summary>Thoughts</summary><div class="tk">${escapeHtml(m.thinking||"")}</div></details>`;
   }
@@ -333,12 +332,8 @@ function exportChat(id){
 /* ----------------------------- settings / voice ------------------------- */
 function saveSettings(){ localStorage.setItem("llm_settings", JSON.stringify(state.settings)); }
 function wireSettings(){
-  const mt=$("#maxTokensRange"), tp=$("#tempRange"), pe=$("#personaInput");
-  mt.value=state.settings.maxTokens; $("#maxTokensVal").textContent=state.settings.maxTokens;
-  tp.value=state.settings.temperature; $("#tempVal").textContent=(+state.settings.temperature).toFixed(1);
+  const pe=$("#personaInput");
   pe.value=state.settings.persona;
-  mt.oninput=()=>{ state.settings.maxTokens=+mt.value; $("#maxTokensVal").textContent=mt.value; saveSettings(); };
-  tp.oninput=()=>{ state.settings.temperature=+tp.value; $("#tempVal").textContent=(+tp.value).toFixed(1); saveSettings(); };
   pe.oninput=()=>{ state.settings.persona=pe.value; saveSettings(); };
 }
 function setupVoice(){
@@ -372,8 +367,8 @@ async function init(){
   $("#newChatBtn").onclick=newChat; $("#newChatIcon").onclick=newChat;
   $("#sidebarToggle").onclick=toggleSidebar; $("#backdrop").onclick=toggleSidebar;
   $("#modelBtn").onclick=e=>{ e.stopPropagation(); const m=$("#modelMenu"); const open=m.classList.contains("open"); closeAllMenus(); if(!open) m.classList.add("open"); };
-  $("#settingsBtn").onclick=()=>openModal("settingsModal");
-  $("#helpBtn").onclick=()=>openModal("helpModal");
+  $("#settingsBtn").onclick=()=>{ closeAllMenus(); openModal("settingsModal"); };
+  $("#helpBtn").onclick=()=>{ closeAllMenus(); openModal("helpModal"); };
   $("#userBtn").onclick=e=>{ e.stopPropagation(); const open=$("#userMenu").classList.toggle("open"); $("#userBtn").setAttribute("aria-expanded", open?"true":"false"); };
   $("#logoutBtn").onclick=logout;
   $("#scrollBtn").onclick=scrollToBottom;

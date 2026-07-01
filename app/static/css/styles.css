@@ -449,6 +449,7 @@ button,.chat-item,.ex,.menu .opt,input,textarea,.icon-btn,.round,.user-btn,.newc
 /* ---- Topbar / model picker ---- */
 .model-btn{border:1px solid transparent}
 .model-btn:hover{border-color:var(--border);background:var(--hover)}
+.opt-check{color:var(--text-2);font-weight:600}
 .icon-btn:hover{background:var(--hover)}
 .icon-btn.active{background:var(--accent);color:var(--bg)}
 .icon-btn.active:hover{background:var(--accent-d)}
