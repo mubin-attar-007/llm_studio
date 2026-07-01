@@ -129,7 +129,7 @@ function renderThread(){
   const empty = !c || !c.messages.length;
   main.classList.toggle("empty", empty);
   const t=$("#thread");
-  if(empty){ t.innerHTML = `<div class="thread-inner"><div class="empty-hero"><h1>How can I help you today?</h1>${examplesHtml()}</div></div>`; updateScrollBtn(); return; }
+  if(empty){ t.innerHTML = `<div class="thread-inner"><div class="empty-hero"><h1>What can I help with?</h1>${examplesHtml()}</div></div>`; updateScrollBtn(); return; }
   t.innerHTML = `<div class="thread-inner">${c.messages.map((m,i)=>rowHtml(m,i,c.messages.length)).join("")}</div>`;
   enhance(t); stick=true; scrollToBottom(); updateScrollBtn();
 }
