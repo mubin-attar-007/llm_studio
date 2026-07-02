@@ -368,6 +368,9 @@ async function init(){
   $("#sidebarToggle").onclick=toggleSidebar; $("#backdrop").onclick=toggleSidebar;
   $("#modelBtn").onclick=e=>{ e.stopPropagation(); const m=$("#modelMenu"); const open=m.classList.contains("open"); closeAllMenus(); if(!open) m.classList.add("open"); };
   $("#settingsBtn").onclick=()=>{ closeAllMenus(); openModal("settingsModal"); };
+  $("#changePwBtn")?.addEventListener("click", changePassword);
+  $("#deleteAcctBtn")?.addEventListener("click", ()=>{ $("#deleteConfirm").hidden=false; $("#deleteAcctBtn").hidden=true; });
+  $("#delConfirmBtn")?.addEventListener("click", deleteAccount);
   $("#helpBtn").onclick=()=>{ closeAllMenus(); openModal("helpModal"); };
   $("#userBtn").onclick=e=>{ e.stopPropagation(); const open=$("#userMenu").classList.toggle("open"); $("#userBtn").setAttribute("aria-expanded", open?"true":"false"); };
   $("#logoutBtn").onclick=logout;
@@ -415,7 +418,67 @@ function setAuthMode(mode){
   $("#authToggleText").textContent=reg?"Already have an account?":"New here?";
   $("#authToggleBtn").textContent=reg?"Sign in":"Create an account";
   $("#authPassword").setAttribute("autocomplete", reg?"new-password":"current-password");
+  const fl=$("#authForgotLink"); if(fl) fl.hidden=reg;
   authError("");
+}
+
+/* password reset + change/delete account */
+let _resetToken="";
+function showAuthView(view){
+  $("#authForm").hidden = view!=="login";
+  $("#authToggle").hidden = view!=="login";
+  $("#authForgotLink").hidden = view!=="login" || _authMode==="register";
+  $("#forgotForm").hidden = view!=="forgot";
+  $("#resetForm").hidden = view!=="reset";
+  authError("");
+}
+async function submitForgot(ev){
+  ev.preventDefault();
+  const email=$("#forgotEmail").value.trim(); if(!email) return;
+  const btn=$("#forgotSubmit"); btn.disabled=true; $("#forgotError").hidden=true;
+  try{
+    await fetch("/api/auth/password-reset",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email})});
+    const n=$("#forgotNote"); n.textContent="If an account exists for that email, a reset link is on its way. Check your inbox (and spam)."; n.hidden=false;
+  }catch(e){ const er=$("#forgotError"); er.textContent="Network error. Please try again."; er.hidden=false; }
+  finally{ btn.disabled=false; }
+}
+async function submitReset(ev){
+  ev.preventDefault();
+  const pw=$("#resetPw").value, pw2=$("#resetPw2").value, er=$("#resetError");
+  if(pw.length<8){ er.textContent="Password must be at least 8 characters."; er.hidden=false; return; }
+  if(pw!==pw2){ er.textContent="Passwords don't match."; er.hidden=false; return; }
+  const btn=$("#resetSubmit"); btn.disabled=true; er.hidden=true;
+  try{
+    const r=await fetch("/api/auth/password-reset-confirm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:_resetToken,new_password:pw})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok){ er.textContent=authMessage(d); er.hidden=false; btn.disabled=false; return; }
+    history.replaceState(null,"",location.pathname);
+    _resetToken=""; setAuthMode("login"); showAuthView("login"); toast("Password reset — please sign in");
+  }catch(e){ er.textContent="Network error. Please try again."; er.hidden=false; }
+  finally{ btn.disabled=false; }
+}
+async function changePassword(){
+  const cur=$("#curPw").value, np=$("#newPw").value, np2=$("#newPw2").value;
+  const m=$("#acctMsg"); const show=(t,ok)=>{ m.textContent=t; m.className="acct-msg "+(ok?"ok":"err"); m.hidden=false; };
+  if(np.length<8){ show("New password must be at least 8 characters.",false); return; }
+  if(np!==np2){ show("New passwords don't match.",false); return; }
+  const btn=$("#changePwBtn"); btn.disabled=true;
+  try{
+    const r=await fetch("/api/auth/change-password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({current_password:cur,new_password:np})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok){ show(authMessage(d),false); } else { show("Password changed.",true); $("#curPw").value="";$("#newPw").value="";$("#newPw2").value=""; }
+  }catch(e){ show("Network error.",false); } finally{ btn.disabled=false; }
+}
+async function deleteAccount(){
+  const pw=$("#delPw").value; if(!pw) return;
+  const btn=$("#delConfirmBtn"); btn.disabled=true;
+  try{
+    const r=await fetch("/api/auth/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:pw})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok){ toast(authMessage(d)||"Could not delete account"); btn.disabled=false; return; }
+    try{ localStorage.clear(); }catch(e){}
+    location.reload();
+  }catch(e){ toast("Network error."); btn.disabled=false; }
 }
 function showAuth(){
   document.body.classList.remove("authed"); document.body.classList.add("show-auth");
@@ -486,8 +549,15 @@ async function boot(){
   applyTheme(state.theme);
   $("#authForm").addEventListener("submit", submitAuth);
   $("#authToggleBtn").addEventListener("click", ()=> setAuthMode(_authMode==="login"?"register":"login"));
+  $("#authForgotLink")?.addEventListener("click", ()=> showAuthView("forgot"));
+  $("#forgotBack")?.addEventListener("click", ()=> { setAuthMode("login"); showAuthView("login"); });
+  $("#forgotForm")?.addEventListener("submit", submitForgot);
+  $("#resetForm")?.addEventListener("submit", submitReset);
   setAuthMode("login");
+  _resetToken = new URLSearchParams(location.search).get("reset_token") || "";
   const me=await checkAuth();
-  if(me) await enterApp(me); else showAuth();
+  if(me && !_resetToken){ await enterApp(me); return; }
+  showAuth();
+  if(_resetToken) showAuthView("reset");
 }
 boot();

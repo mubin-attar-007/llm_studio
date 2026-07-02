@@ -8,6 +8,18 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <link rel="stylesheet" href="/static/css/styles.css">
+<style>
+  /* Auth extras + account settings (theme-agnostic, no CSS-var deps) */
+  .auth-forgot{background:none;border:0;color:inherit;opacity:.72;cursor:pointer;font:inherit;margin-top:12px;text-decoration:underline}
+  .auth-forgot:hover{opacity:1}
+  .auth-note{color:#10a37f;font-size:13px;margin-bottom:8px}
+  .set-row input[type=password]{display:block;width:100%;margin-top:8px;padding:9px 11px;border-radius:8px;border:1px solid rgba(128,128,128,.35);background:transparent;color:inherit;font:inherit}
+  .acct-btn{margin-top:10px;padding:8px 14px;border-radius:8px;border:1px solid rgba(128,128,128,.35);background:rgba(128,128,128,.12);color:inherit;font-weight:600;cursor:pointer}
+  .acct-btn.primary{background:#10a37f;border-color:#10a37f;color:#fff}
+  .acct-btn.danger{color:#e5484d;border-color:rgba(229,72,77,.5);background:transparent}
+  .acct-msg{margin-top:8px;font-size:13px}
+  .acct-msg.ok{color:#10a37f}.acct-msg.err{color:#e5484d}
+</style>
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.0/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
@@ -40,7 +52,33 @@
       <div class="auth-error" id="authError" role="alert" hidden></div>
       <button type="submit" class="auth-submit" id="authSubmit">Sign in</button>
     </form>
-    <div class="auth-toggle">
+    <button type="button" class="auth-forgot" id="authForgotLink">Forgot password?</button>
+
+    <form id="forgotForm" class="auth-form" hidden autocomplete="on" novalidate>
+      <div class="auth-note" id="forgotNote" hidden></div>
+      <div class="auth-field">
+        <label for="forgotEmail">Email</label>
+        <input id="forgotEmail" type="email" autocomplete="email" required placeholder="you@example.com">
+      </div>
+      <div class="auth-error" id="forgotError" role="alert" hidden></div>
+      <button type="submit" class="auth-submit" id="forgotSubmit">Send reset link</button>
+      <button type="button" class="auth-forgot" id="forgotBack">Back to sign in</button>
+    </form>
+
+    <form id="resetForm" class="auth-form" hidden autocomplete="on" novalidate>
+      <div class="auth-field">
+        <label for="resetPw">New password</label>
+        <input id="resetPw" type="password" autocomplete="new-password" required minlength="8" placeholder="••••••••">
+      </div>
+      <div class="auth-field">
+        <label for="resetPw2">Confirm new password</label>
+        <input id="resetPw2" type="password" autocomplete="new-password" required minlength="8" placeholder="••••••••">
+      </div>
+      <div class="auth-error" id="resetError" role="alert" hidden></div>
+      <button type="submit" class="auth-submit" id="resetSubmit">Reset password</button>
+    </form>
+
+    <div class="auth-toggle" id="authToggle">
       <span id="authToggleText">New here?</span>
       <button type="button" id="authToggleBtn">Create an account</button>
     </div>
@@ -138,6 +176,21 @@
       <div class="set-row"><label>Custom instructions</label>
         <textarea id="personaInput" rows="4" placeholder="How should the assistant respond? (e.g. 'Be concise and direct', 'You are a Python tutor')"></textarea>
         <div class="set-help">Sets how the assistant behaves in every chat.</div>
+      </div>
+      <div class="set-row"><label>Change password</label>
+        <input id="curPw" type="password" autocomplete="current-password" placeholder="Current password">
+        <input id="newPw" type="password" autocomplete="new-password" placeholder="New password (8+ characters)">
+        <input id="newPw2" type="password" autocomplete="new-password" placeholder="Confirm new password">
+        <button id="changePwBtn" class="acct-btn primary">Update password</button>
+        <div class="acct-msg" id="acctMsg" hidden></div>
+      </div>
+      <div class="set-row"><label>Danger zone</label>
+        <div class="set-help">Permanently delete your account, chats, and history. This can't be undone.</div>
+        <button id="deleteAcctBtn" class="acct-btn danger">Delete account…</button>
+        <div id="deleteConfirm" hidden>
+          <input id="delPw" type="password" autocomplete="current-password" placeholder="Confirm your password">
+          <button id="delConfirmBtn" class="acct-btn danger">Permanently delete</button>
+        </div>
       </div>
     </div>
   </div>

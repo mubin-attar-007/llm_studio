@@ -24,6 +24,13 @@ class Session(Base):
     last_seen = Column(BigInteger, default=0)
 
 
+class PasswordReset(Base):
+    __tablename__ = "password_resets"
+    token = Column(String(64), primary_key=True)     # opaque single-use reset token
+    user_id = Column(String(40), nullable=False, index=True)
+    expires = Column(BigInteger, default=0, index=True)
+
+
 class UsageDaily(Base):
     __tablename__ = "usage_daily"
     user_id = Column(String(40), primary_key=True)

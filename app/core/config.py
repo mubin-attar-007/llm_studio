@@ -37,6 +37,14 @@ class Settings(BaseSettings):
     # per-user daily message quota (shared-key SaaS model)
     DAILY_MESSAGE_QUOTA: int = 25
 
+    # email (password reset). Unset => the reset link is logged (never a dead button).
+    # To send for real, use a free Gmail App Password (see .env.example).
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""       # Gmail address — enables real delivery
+    SMTP_PASSWORD: str = ""   # Google App Password (16 chars)
+    EMAIL_FROM: str = ""      # from-address; defaults to SMTP_USER
+
     # uploads / document context
     MAX_UPLOAD_MB: int = 10
     MAX_DOC_CHARS: int = 200_000

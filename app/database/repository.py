@@ -3,7 +3,7 @@ import json
 
 from app.core.security import now_ms
 from app.database.engine import SessionLocal
-from app.database.models import Chat, UsageDaily, User
+from app.database.models import Chat, PasswordReset, UsageDaily, User
 from app.database.models import Session as SessionRow
 
 
@@ -41,6 +41,45 @@ def get_user_by_id(uid: str) -> dict | None:
 def count_users() -> int:
     with SessionLocal() as s:
         return s.query(User).count()
+
+
+def update_user_password(user_id: str, password_hash: str) -> None:
+    with SessionLocal() as s:
+        u = s.get(User, user_id)
+        if u:
+            u.password_hash = password_hash
+            s.commit()
+
+
+def delete_user(user_id: str) -> None:
+    """Hard-delete the user and everything they own (sessions, chats, usage, reset tokens)."""
+    with SessionLocal() as s:
+        s.query(SessionRow).filter(SessionRow.user_id == user_id).delete()
+        s.query(Chat).filter(Chat.owner_id == user_id).delete()
+        s.query(UsageDaily).filter(UsageDaily.user_id == user_id).delete()
+        s.query(PasswordReset).filter(PasswordReset.user_id == user_id).delete()
+        u = s.get(User, user_id)
+        if u:
+            s.delete(u)
+        s.commit()
+
+
+# ---------- password reset (single-use, expiring) ----------
+def create_reset_token(token: str, user_id: str, expires: int) -> None:
+    with SessionLocal() as s:
+        s.add(PasswordReset(token=token, user_id=user_id, expires=expires))
+        s.commit()
+
+
+def consume_reset_token(token: str) -> str | None:
+    with SessionLocal() as s:
+        row = s.get(PasswordReset, token)
+        if not row:
+            return None
+        uid, expired = row.user_id, (row.expires and row.expires < now_ms())
+        s.delete(row)   # single-use
+        s.commit()
+        return None if expired else uid
 
 
 # ---------- sessions ----------
