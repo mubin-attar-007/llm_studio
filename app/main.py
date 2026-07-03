@@ -7,7 +7,7 @@ import os
 import time
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from app.api.auth_routes import auth_router
@@ -78,7 +78,26 @@ def index():
 
 @app.get("/favicon.ico")
 def favicon():
-    return Response(status_code=204)
+    # Serve the real SVG favicon for /favicon.ico requests (browsers accept SVG here).
+    return FileResponse(os.path.join(_HERE, "static", "favicon.svg"),
+                        media_type="image/svg+xml")
+
+
+@app.get("/robots.txt")
+def robots():
+    body = "User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /auth/\nSitemap: /sitemap.xml\n"
+    return PlainTextResponse(body)
+
+
+@app.get("/sitemap.xml")
+def sitemap():
+    body = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        "  <url><loc>/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>\n"
+        "</urlset>\n"
+    )
+    return Response(content=body, media_type="application/xml")
 
 
 @app.get("/healthz")

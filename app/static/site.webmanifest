@@ -1,0 +1,18 @@
+{
+  "name": "LLM Studio",
+  "short_name": "LLM Studio",
+  "description": "A multi-user, multi-model AI chat workspace — cloud and local models in one unified app.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#212121",
+  "theme_color": "#10a37f",
+  "icons": [
+    {
+      "src": "/static/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
