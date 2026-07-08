@@ -124,6 +124,8 @@ button{font-family:inherit}
 .tag-kind.local{color:#15803d;background:#dcfce7}
 [data-theme="dark"] .tag-kind.cloud{color:#93c5fd;background:#1b2942}
 [data-theme="dark"] .tag-kind.local{color:#86efac;background:#15271a}
+.tag-reason{font-size:10px;border-radius:999px;padding:2px 7px;font-weight:600;color:#7c3aed;background:#ede9fe}
+[data-theme="dark"] .tag-reason{color:#c4b5fd;background:#2a2142}
 .menu .opt.danger{color:var(--danger)}
 #modelMenu{top:44px;left:0}
 

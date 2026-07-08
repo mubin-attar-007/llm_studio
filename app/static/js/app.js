@@ -58,7 +58,14 @@ async function loadModels(){
 function renderModelMenu(){
   $("#modelMenu").innerHTML = MODELS.map(m => {
     const sel = m.id === state.model;
-    return `<div class="opt${sel?' sel':''}" onclick="pickModel('${m.id}')"><span class="opt-name">${escapeHtml(shortName(m.id))}</span>${sel?'<span class="opt-check">✓</span>':''}</div>`;
+    const kind = modelKind(m.id);
+    const tags = [];
+    if(isReasoning(m.id)) tags.push('<span class="tag-reason">reasoning</span>');
+    tags.push(`<span class="tag-kind ${kind}">${kind}</span>`);
+    if(sel) tags.push('<span class="opt-check">✓</span>');
+    return `<div class="opt${sel?' sel':''}" onclick="pickModel('${m.id}')">`+
+      `<span class="opt-name">${escapeHtml(shortName(m.id))}</span>`+
+      `<span class="opt-tags">${tags.join("")}</span></div>`;
   }).join("");
 }
 function pickModel(id){ state.model = id; localStorage.setItem("llm_model", id); updateModelLabel(); renderModelMenu(); closeAllMenus(); }
@@ -226,7 +233,7 @@ async function streamInto(messages, model, ctrl, cb){
   if(!res.ok){
     let msg="Request failed ("+res.status+").";
     try{ const j=await res.json(); if(j.error) msg=j.error; if(j.quota) updateQuota(j.quota); }catch(e){}
-    if(res.status===401){ msg="Your session expired — reloading…"; setTimeout(()=>location.reload(),1200); }
+    if(res.status===401){ msg="Your session expired — please sign in again."; setTimeout(showAuth,600); }
     cb.onError(msg); return;
   }
   consumeQuotaLocal();
@@ -263,13 +270,19 @@ async function runCompletion(c, maybeTitle){
   const row=document.querySelector(`.row[data-i="${bi}"]`);
   const cEl=row && row.querySelector(".content");
   const ctrl=new AbortController(); aborts=[ctrl];
+  // Coalesce token renders to one per animation frame: the markdown is re-parsed at
+  // most ~60x/s instead of once per token. Removes the streaming jank on long replies
+  // (was O(n^2) — a full re-parse + re-sanitize of the whole message on every token).
+  let raf=0;
+  const flush=()=>{ raf=0; if(cEl){ cEl.innerHTML=renderMd(bot.content)+'<span class="cursor"></span>'; smartScroll(); } };
   try{
     await streamInto(apiHistory(c, bi), state.model, ctrl, {
-      onToken:(t)=>{ bot.content+=t; if(cEl){ cEl.innerHTML=renderMd(bot.content)+'<span class="cursor"></span>'; smartScroll(); } },
+      onToken:(t)=>{ bot.content+=t; if(cEl && !raf) raf=requestAnimationFrame(flush); },
       onThink:(t)=>{ bot.thinking+=t; const tk=row&&row.querySelector(".think .tk"); if(tk){ tk.textContent=bot.thinking; smartScroll(); } },
       onError:(e)=>{ bot.error=e; },
     });
   }catch(e){ if(e.name!=="AbortError") bot.error=e.message; }
+  if(raf) cancelAnimationFrame(raf);
   bot._streaming=false;
   if(!bot.content.trim() && !bot.error) bot.error="The model returned no text. Try again or pick another model.";
   setGenerating(false); c.updated=Date.now(); saveChats(); renderThread(); renderSidebar();
