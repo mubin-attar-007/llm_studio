@@ -32,8 +32,8 @@
   .auth-note{color:#10a37f;font-size:13px;margin-bottom:8px}
   .set-row input[type=password]{display:block;width:100%;margin-top:8px;padding:9px 11px;border-radius:8px;border:1px solid rgba(128,128,128,.35);background:transparent;color:inherit;font:inherit}
   .acct-btn{margin-top:10px;padding:8px 14px;border-radius:8px;border:1px solid rgba(128,128,128,.35);background:rgba(128,128,128,.12);color:inherit;font-weight:600;cursor:pointer}
-  .acct-btn.primary{background:#10a37f;border-color:#10a37f;color:#fff}
-  .acct-btn.danger{color:#e5484d;border-color:rgba(229,72,77,.5);background:transparent}
+  .acct-btn.primary{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+  .acct-btn.danger{color:var(--danger);border-color:rgba(229,72,77,.5);background:transparent}
   .acct-msg{margin-top:8px;font-size:13px}
   .acct-msg.ok{color:#10a37f}.acct-msg.err{color:#e5484d}
 </style>
@@ -199,6 +199,10 @@
       <div class="set-row"><label>Custom instructions</label>
         <textarea id="personaInput" rows="4" placeholder="How should the assistant respond? (e.g. 'Be concise and direct', 'You are a Python tutor')"></textarea>
         <div class="set-help">Sets how the assistant behaves in every chat.</div>
+      </div>
+      <div class="set-row"><label>Archived chats</label>
+        <div class="set-help">Archived chats are hidden from the sidebar but kept here.</div>
+        <div id="archivedList" class="archived-list"></div>
       </div>
       <div class="set-row"><label>Change password</label>
         <input id="curPw" type="password" autocomplete="current-password" placeholder="Current password">

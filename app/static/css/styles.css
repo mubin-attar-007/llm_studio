@@ -20,7 +20,7 @@
   --bg-alt:#f4f4f4;
   --code-bg:#0d1117;
   --code-text:#e6edf3;
-  --danger:#e02e2a;
+  --danger:#d1242e;              /* danger text — AA on white */
   --shadow:0 2px 8px rgba(0,0,0,.08);
   --shadow-lg:0 12px 32px rgba(0,0,0,.16);
   --radius:12px;
@@ -41,6 +41,7 @@
   --user-bubble:#323232;
   --user-text:#ececec;
   --bg-alt:#1e1e1e;
+  --danger:#f87171;              /* danger text — AA on dark */
   --shadow:0 2px 8px rgba(0,0,0,.3);
   --shadow-lg:0 12px 32px rgba(0,0,0,.5);
 }
@@ -494,7 +495,7 @@ body.show-auth .auth-screen{display:flex}
 .confirm-text{color:var(--text-2);font-size:14px;line-height:1.5;margin:8px 0 0}
 .confirm-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
 .confirm-actions button{border:none;border-radius:999px;padding:9px 18px;font-size:14px;font-weight:500;cursor:pointer}
-.btn-danger{background:var(--danger);color:#fff}
+.btn-danger{background:#dc2626;color:#fff}  /* fixed fill: white text AA in both themes */
 .btn-danger:hover{filter:brightness(1.08)}
 .btn-cancel{background:transparent;border:1px solid var(--border);color:var(--text)}
 .btn-cancel:hover{background:var(--hover)}
@@ -510,6 +511,19 @@ body.show-auth .auth-screen{display:flex}
   cursor:pointer;transition:background var(--tr),color var(--tr),border-color var(--tr)}
 .continue-btn:hover{background:var(--hover);color:var(--text);border-color:var(--text-3)}
 .continue-btn svg{opacity:.85;flex:0 0 auto}
+
+/* Archived-chats manager (Settings) */
+.archived-list{margin-top:8px;display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto}
+.archived-empty{color:var(--text-3);font-size:13px;padding:8px 2px}
+.archived-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 10px;border-radius:8px}
+.archived-item:hover{background:var(--hover)}
+.ai-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;min-width:0}
+.ai-acts{display:flex;gap:6px;flex:0 0 auto}
+.ai-btn{border:1px solid var(--border);background:transparent;color:var(--text-2);border-radius:999px;
+  padding:5px 12px;font-size:12px;font-weight:500;cursor:pointer;transition:background var(--tr),color var(--tr),border-color var(--tr)}
+.ai-btn:hover{background:var(--hover);color:var(--text)}
+.ai-btn.danger{color:var(--danger);border-color:transparent}
+.ai-btn.danger:hover{background:rgba(224,46,42,.12)}
 
 ::selection{background:rgba(13,13,13,.10)}
 [data-theme="dark"] ::selection{background:rgba(255,255,255,.16)}

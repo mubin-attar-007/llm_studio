@@ -11,6 +11,7 @@ const IC = {
   dislike:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>',
   speak:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>',
   trash:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>',
+  archive:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3.5" width="18" height="4.5" rx="1.2"/><path d="M5 8v11.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg>',
 };
 const ICON_SEND = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
 const ICON_STOP = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>';
@@ -112,9 +113,28 @@ function confirmDeleteChat(){
   const id=_pendingDelete; _pendingDelete=null; closeModals(); if(!id) return;
   fetch("/api/chats/"+id,{method:"DELETE"}).catch(()=>{});
   state.chats=state.chats.filter(c=>c.id!==id);
-  if(state.current===id) state.current=state.chats[0]?.id||null;
-  if(!state.chats.length){ saveChats(); newChat(); return; }
-  saveChats(); renderSidebar(); renderThread();
+  if(state.current===id) state.current=state.chats.find(x=>!x.archived&&x.messages.length)?.id||null;
+  if(!state.chats.filter(x=>!x.archived&&x.messages.length).length){ saveChats(); newChat(); return; }
+  saveChats(); renderSidebar(); renderThread(); renderArchivedList();
+}
+/* Archive: hide a chat from the sidebar (kept + manageable in Settings). */
+function archiveChat(id){
+  closeAllMenus(); const c=state.chats.find(x=>x.id===id); if(!c) return;
+  c.archived=true; c.updated=Date.now(); saveChats(); renderSidebar();
+  if(state.current===id){ const nxt=state.chats.find(x=>!x.archived&&x.messages.length); if(nxt) selectChat(nxt.id); else newChat(); }
+  toast("Chat archived");
+}
+function unarchiveChat(id){
+  const c=state.chats.find(x=>x.id===id); if(!c) return;
+  c.archived=false; c.updated=Date.now(); saveChats(); renderSidebar(); renderArchivedList();
+}
+function renderArchivedList(){
+  const box=$("#archivedList"); if(!box) return;
+  const arch=state.chats.filter(c=>c.archived&&c.messages.length).sort((a,b)=>(b.updated||0)-(a.updated||0));
+  if(!arch.length){ box.innerHTML='<div class="archived-empty">No archived chats.</div>'; return; }
+  box.innerHTML=arch.map(c=>`<div class="archived-item"><span class="ai-title">${escapeHtml(c.title)}</span>`+
+    `<span class="ai-acts"><button class="ai-btn" onclick="unarchiveChat('${c.id}')">Unarchive</button>`+
+    `<button class="ai-btn danger" onclick="deleteChat('${c.id}')">Delete</button></span></div>`).join("");
 }
 
 function groupChats(list){
@@ -127,8 +147,8 @@ function groupChats(list){
 }
 function renderSidebar(){
   const q=(state.search||"").toLowerCase().trim();
-  // A blank draft chat isn't listed until it has a message (ChatGPT behavior).
-  let list=[...state.chats].filter(c=>c.messages.length).sort((a,b)=>(b.updated||0)-(a.updated||0));
+  // Blank drafts + archived chats aren't listed (ChatGPT behavior).
+  let list=[...state.chats].filter(c=>c.messages.length&&!c.archived).sort((a,b)=>(b.updated||0)-(a.updated||0));
   if(q) list=list.filter(c => (c.title||"").toLowerCase().includes(q) || c.messages.some(m=>((m.display!=null?m.display:m.content)||"").toLowerCase().includes(q)));
   const box=$("#chats");
   if(!list.length){ box.innerHTML = "<div class='grp-label'>"+(q?"No matches":"No chats yet")+"</div>"; return; }
@@ -145,6 +165,7 @@ function chatMenu(e,id){
   const ctx=$("#ctxMenu");
   ctx.innerHTML = `<div class="opt" onclick="startRename('${id}')">${IC.edit}<span>Rename</span></div>
     <div class="opt" onclick="exportChat('${id}')">${IC.copy}<span>Export</span></div>
+    <div class="opt" onclick="archiveChat('${id}')">${IC.archive}<span>Archive</span></div>
     <div class="menu-sep"></div>
     <div class="opt danger" onclick="deleteChat('${id}')">${IC.trash}<span>Delete</span></div>`;
   ctx.style.left = Math.min(e.clientX, innerWidth-210) + "px";
@@ -527,7 +548,7 @@ async function init(){
   $("#newChatBtn").onclick=newChat; $("#newChatIcon").onclick=newChat;
   $("#sidebarToggle").onclick=toggleSidebar; $("#backdrop").onclick=toggleSidebar;
   $("#modelBtn").onclick=e=>{ e.stopPropagation(); const m=$("#modelMenu"); const open=m.classList.contains("open"); closeAllMenus(); if(!open) m.classList.add("open"); };
-  $("#settingsBtn").onclick=()=>{ closeAllMenus(); openModal("settingsModal"); };
+  $("#settingsBtn").onclick=()=>{ closeAllMenus(); renderArchivedList(); openModal("settingsModal"); };
   $("#confirmDeleteBtn").onclick=confirmDeleteChat;
   $("#changePwBtn")?.addEventListener("click", changePassword);
   $("#deleteAcctBtn")?.addEventListener("click", ()=>{ $("#deleteConfirm").hidden=false; $("#deleteAcctBtn").hidden=true; });
