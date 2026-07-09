@@ -83,7 +83,19 @@ function saveChats(){
 }
 function curChat(){ return state.chats.find(c => c.id === state.current); }
 function migrate(){ let ch=false; state.chats.forEach(c=>{ if(!c.created){c.created=Date.now();ch=true;} if(!c.updated){c.updated=c.created;ch=true;} }); if(ch) saveChats(); }
-function newChat(){ const c={id:uid(), title:"New chat", messages:[], created:Date.now(), updated:Date.now()}; state.chats.unshift(c); state.current=c.id; pendingFile=null; renderAttach(); saveChats(); renderSidebar(); renderThread(); $("#input").focus(); }
+function newChat(){
+  // ChatGPT behavior: a blank chat is a draft. Clicking "New chat" while already on a
+  // blank chat reuses it (no duplicate), and stray empty drafts are pruned.
+  state.chats = state.chats.filter(c => c.messages.length || c.id === state.current);
+  const cur = curChat();
+  if(!cur || cur.messages.length){
+    const c={id:uid(), title:"New chat", messages:[], created:Date.now(), updated:Date.now()};
+    state.chats.unshift(c); state.current=c.id;
+  }
+  pendingFile=null; renderAttach();
+  const inp=$("#input"); if(inp){ inp.value=""; autoGrow(); }
+  updateSendBtn(); saveChats(); renderSidebar(); renderThread(); if(inp) inp.focus();
+}
 function selectChat(id){ state.current=id; saveChats(); renderSidebar(); renderThread(); }
 function deleteChat(id){ closeAllMenus(); fetch("/api/chats/"+id,{method:"DELETE"}).catch(()=>{}); state.chats=state.chats.filter(c=>c.id!==id); if(state.current===id) state.current=state.chats[0]?.id||null; if(!state.chats.length){ saveChats(); newChat(); return; } saveChats(); renderSidebar(); renderThread(); }
 
@@ -97,7 +109,8 @@ function groupChats(list){
 }
 function renderSidebar(){
   const q=(state.search||"").toLowerCase().trim();
-  let list=[...state.chats].sort((a,b)=>(b.updated||0)-(a.updated||0));
+  // A blank draft chat isn't listed until it has a message (ChatGPT behavior).
+  let list=[...state.chats].filter(c=>c.messages.length).sort((a,b)=>(b.updated||0)-(a.updated||0));
   if(q) list=list.filter(c => (c.title||"").toLowerCase().includes(q) || c.messages.some(m=>((m.display!=null?m.display:m.content)||"").toLowerCase().includes(q)));
   const box=$("#chats");
   if(!list.length){ box.innerHTML = "<div class='grp-label'>"+(q?"No matches":"No chats yet")+"</div>"; return; }
