@@ -139,7 +139,9 @@ button{font-family:inherit}
 .avatar{width:28px;height:28px;border-radius:50%;flex:0 0 28px;display:flex;align-items:center;
   justify-content:center;color:#fff;font-weight:700;font-size:12px;margin-top:2px;
   background:linear-gradient(135deg,#10a37f,#0ea5e9)}
-.bubble{max-width:72%;padding:10px 15px;border-radius:20px;background:var(--user-bubble);
+/* max-width:100% (not a nested %) — the .bubble-wrap already caps width at 72% of the row.
+   A second percentage here squeezed short messages below their content width (vertical text). */
+.bubble{max-width:100%;padding:10px 15px;border-radius:20px;background:var(--user-bubble);
   color:var(--user-text);font-size:15px;line-height:1.55;white-space:pre-wrap;word-wrap:break-word}
 .asst{flex:1;min-width:0}
 .content{font-size:15.5px;line-height:1.7;word-wrap:break-word}
@@ -296,7 +298,7 @@ kbd{background:var(--hover);border:1px solid var(--border);border-radius:6px;pad
 /* ----------------------------- Responsive -------------------------------- */
 @media (max-width:760px){
   .sidebar{position:fixed;left:0;top:0;height:100%;z-index:50;box-shadow:var(--shadow-lg)}
-  .bubble,.bubble-wrap{max-width:85%}
+  .bubble-wrap{max-width:85%}   /* .bubble stays max-width:100% of the wrap */
   .examples{grid-template-columns:1fr}
   .empty-hero h1{font-size:24px}
 }
@@ -312,8 +314,10 @@ kbd{background:var(--hover);border:1px solid var(--border);border-radius:6px;pad
   color:var(--text);font:inherit;font-size:14px;padding:10px;resize:vertical;outline:none}
 .set-row textarea:focus{border-color:var(--accent)}
 
-.mic{background:transparent;color:var(--text-2)}
-.mic:hover{background:var(--hover)}
+/* Solid primary voice button — ChatGPT shows a solid circle here when the box is empty;
+   it morphs to the solid send arrow once you type (see updateSendBtn). */
+.mic{background:var(--text);color:var(--bg)}
+.mic:hover{opacity:.9}
 .mic.rec{color:#fff;background:#e02e2a;animation:micpulse 1.2s infinite}
 @keyframes micpulse{0%,100%{box-shadow:0 0 0 0 rgba(224,46,42,.5)}50%{box-shadow:0 0 0 6px rgba(224,46,42,0)}}
 
@@ -465,18 +469,13 @@ body.show-auth .auth-screen{display:flex}
   background:var(--text-3);opacity:.34;cursor:pointer;transition:opacity .15s,width .15s,background .15s}
 .nav-mark:hover{opacity:.9;width:18px}
 .nav-mark.on{opacity:1;width:18px;background:var(--text-2)}
-/* hover message-preview panel */
-.nav-panel{position:absolute;top:56px;bottom:118px;right:32px;width:264px;max-width:40vw;display:none;flex-direction:column;
-  gap:2px;padding:8px;background:var(--menu-bg);border:1px solid var(--menu-border);border-radius:12px;
-  box-shadow:var(--shadow-lg);overflow-y:auto;z-index:6}
-.nav-panel.show{display:flex}
-.nav-row{display:flex;align-items:center;gap:9px;padding:7px 9px;border:none;background:transparent;border-radius:8px;
-  cursor:pointer;text-align:left;color:var(--text-2);font:inherit;font-size:13px;width:100%}
-.nav-row:hover{background:var(--hover);color:var(--text)}
-.nav-row.on{color:var(--text);background:var(--hover)}
-.nav-dot{width:6px;height:6px;border-radius:50%;background:var(--text-3);flex:0 0 auto}
-.nav-row.on .nav-dot{background:var(--accent)}
-.nav-snip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+/* hover message-preview tooltip — compact, vertically aligned to the hovered mark
+   (ChatGPT-style single-line preview, NOT a full-height list of every turn) */
+.nav-panel{position:absolute;right:34px;max-width:min(340px,42vw);padding:7px 12px;
+  background:var(--menu-bg);border:1px solid var(--menu-border);border-radius:9px;box-shadow:var(--shadow-lg);
+  color:var(--text);font-size:13px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  display:none;z-index:6;transform:translateY(-50%);pointer-events:none}
+.nav-panel.show{display:block}
 /* jump-to highlight flash */
 .row.nav-flash{animation:navFlash 1.1s ease-out}
 @keyframes navFlash{0%{background:rgba(127,127,127,.18);border-radius:12px}100%{background:transparent}}
@@ -502,7 +501,7 @@ body.show-auth .auth-screen{display:flex}
 
 /* Theme parity (audit): subtle dark sidebar hover, crisp send icon */
 [data-theme="dark"] .chat-item:hover,[data-theme="dark"] .sidebar .newchat:hover{background:rgba(255,255,255,.05)}
-[data-theme="dark"] .send{background:#fff;color:#000}
+[data-theme="dark"] .send,[data-theme="dark"] .mic:not(.rec){background:#fff;color:#000}
 
 /* "Continue generating" — shown on a reply truncated at the token limit */
 .continue-wrap{margin-top:10px}
@@ -568,7 +567,7 @@ button,.chat-item,.ex,.menu .opt,input,textarea,.icon-btn,.round,.user-btn,.newc
 .content h1:first-child,.content h2:first-child,.content h3:first-child{margin-top:0}
 .content strong,.content b{font-weight:600}
 .content a{color:var(--link)}
-.bubble{border-radius:24px;padding:10px 20px;max-width:70%;box-shadow:none}
+.bubble{border-radius:24px;padding:10px 20px;max-width:100%;box-shadow:none}
 .avatar{box-shadow:0 2px 6px rgba(16,163,127,.30)}
 .act{border-radius:8px}
 .code-card{box-shadow:none}
@@ -576,9 +575,9 @@ button,.chat-item,.ex,.menu .opt,input,textarea,.icon-btn,.round,.user-btn,.newc
 .code-copy{color:#b4b4b4}
 
 /* ---- Composer ---- (substantial rounded box, not a thin pill) */
-.composer{border-radius:28px;box-shadow:0 2px 12px rgba(0,0,0,.06);padding:11px 12px 11px 16px;align-items:center}
+.composer{border-radius:28px;box-shadow:0 2px 12px rgba(0,0,0,.06);padding:8px 10px 8px 16px;align-items:center}
 .composer:focus-within{border-color:var(--text-3);box-shadow:0 2px 18px rgba(0,0,0,.12)}
-.composer textarea{font-size:16px;line-height:1.5;padding:8px 6px;min-height:28px}
+.composer textarea{font-size:16px;line-height:1.5;padding:6px 6px;min-height:24px}
 .composer-wrap{padding-bottom:20px}
 .send{box-shadow:none}
 .send:not(:disabled):not(.stop):hover{background:var(--accent-d)}

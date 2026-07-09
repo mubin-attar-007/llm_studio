@@ -366,6 +366,7 @@ async function streamInto(messages, model, ctrl, cb){
 async function send(){
   const ta=$("#input"); const text=ta.value.trim();
   if((!text && !pendingFile) || generating) return;
+  if(recording){ try{ recog && recog.stop(); }catch(e){} recording=false; $("#micBtn").classList.remove("rec"); }  // end dictation cleanly before clearing the box
   let c=curChat(); if(!c){ newChat(); c=curChat(); }
   const um={role:"user", content:text};
   if(pendingFile){ um.content=`The user attached a document named "${pendingFile.name}". Content:\n\n${pendingFile.text}\n\n---\n\nUser: ${text||"(please summarize this document.)"}`; um.display=text; um.file=pendingFile.name; }
@@ -431,12 +432,20 @@ async function continueGen(){
   bot._streaming=false; setGenerating(false); c.updated=Date.now(); saveChats(); renderThread(); renderSidebar();
 }
 function setGenerating(on){
-  generating=on; const b=$("#sendBtn");
-  if(on){ b.disabled=false; b.classList.add("stop"); b.innerHTML=ICON_STOP; b.title="Stop"; }
+  generating=on; const b=$("#sendBtn"), mic=$("#micBtn");
+  if(on){ b.hidden=false; b.disabled=false; b.classList.add("stop"); b.innerHTML=ICON_STOP; b.title="Stop"; if(mic) mic.hidden=true; }
   else{ b.classList.remove("stop"); b.innerHTML=ICON_SEND; b.title="Send"; updateSendBtn(); }
 }
 function stopGen(){ aborts.forEach(a=>{ try{a.abort();}catch(e){} }); aborts=[]; }
-function updateSendBtn(){ if(!generating) $("#sendBtn").disabled = !($("#input").value.trim() || pendingFile); }
+function updateSendBtn(){
+  if(generating || recording) return;   // during dictation keep the (red, clickable-to-stop) mic visible — don't morph to send
+  const has = !!($("#input").value.trim() || pendingFile);
+  const send=$("#sendBtn"), mic=$("#micBtn");
+  send.disabled = !has;
+  // ChatGPT-style: a single solid right button — the mic (voice) when the box is empty, morphing to the send arrow once you type.
+  if(mic && mic.dataset.avail==="1"){ mic.hidden = has; send.hidden = !has; }
+  else { send.hidden = false; }   // no speech support: keep the send button (disabled when empty)
+}
 
 /* ----------------------------- scrolling -------------------------------- */
 function nearBottom(){ const t=$("#thread"); return t.scrollHeight - t.scrollTop - t.clientHeight < 120; }
@@ -448,22 +457,33 @@ function updateScrollBtn(){ const t=$("#thread"); const show=!$("#main").classLi
    Positions from offsetTop/scrollHeight; active turn via IntersectionObserver (no
    per-scroll compute); one rAF-throttled scroll listener updates the viewport bracket;
    ResizeObserver re-lays-out on reflow. Markers = user turns (the natural sections). --- */
-let _navIO=null,_navRO=null,_navVpRaf=0,_navHideT=null;
+let _navIO=null,_navRO=null,_navVpRaf=0,_navHideT=null,_navHoverI=null;
 function navUserTurns(){ const c=curChat(); return c?c.messages.map((m,i)=>({m,i})).filter(x=>x.m.role==="user"):[]; }
 function navSnippet(m){ const s=(m.display!=null?m.display:m.content||"").replace(/\s+/g," ").trim(); return s.length>64?s.slice(0,63)+"…":s; }
 function layoutNavMarks(){
-  const inner=$("#navMarksInner"), panel=$("#navPanel"), t=$("#thread"); if(!inner) return;
+  const inner=$("#navMarksInner"), t=$("#thread"); if(!inner) return;
   const H=t.scrollHeight||1, turns=navUserTurns();
   inner.innerHTML=turns.map(({i})=>{
     const el=t.querySelector(`.row[data-i="${i}"]`); if(!el) return "";
     const top=Math.min(99,Math.max(1,(el.offsetTop/H)*100));
     return `<button class="nav-mark" data-i="${i}" tabindex="-1" style="top:${top.toFixed(2)}%" onclick="scrollToMsg(${i})"></button>`;
   }).join("");
-  if(panel) panel.innerHTML=turns.map(({m,i})=>`<button class="nav-row" data-i="${i}" tabindex="-1" onclick="scrollToMsg(${i})"><span class="nav-dot"></span><span class="nav-snip">${escapeHtml(navSnippet(m))}</span></button>`).join("");
+  // Marks were just recreated (e.g. reflow while streaming). If a tooltip is up, re-anchor it to the
+  // hovered mark's new position — or hide it if that turn no longer exists — so it can't linger stale.
+  if(_navHoverI!=null){ const panel=$("#navPanel");
+    if(panel && panel.classList.contains("show")){ const hm=inner.querySelector(`.nav-mark[data-i="${_navHoverI}"]`); if(hm) showNavTip(hm); else panel.classList.remove("show"); } }
 }
 function setNavActive(i){
   document.querySelectorAll("#navMarksInner .nav-mark").forEach(mk=>mk.classList.toggle("on",Number(mk.dataset.i)===i));
-  document.querySelectorAll("#navPanel .nav-row").forEach(r=>r.classList.toggle("on",Number(r.dataset.i)===i));
+}
+// Compact per-mark preview tooltip: position it centered on the hovered mark, to the rail's left.
+function showNavTip(mark){
+  const panel=$("#navPanel"), main=$("#main"); if(!panel||!main) return;
+  const c=curChat(); if(!c) return; const m=c.messages[Number(mark.dataset.i)]; if(!m) return;
+  panel.textContent=navSnippet(m);
+  const mr=mark.getBoundingClientRect(), pr=main.getBoundingClientRect();
+  panel.style.top=(mr.top-pr.top+mr.height/2)+"px";
+  panel.classList.add("show");
 }
 function updateNavViewport(){
   const vp=$("#navViewport"), rail=$("#navMarks"), t=$("#thread"); if(!vp||!rail) return;
@@ -475,7 +495,7 @@ function renderNavMarks(){
   const rail=$("#navMarks"); if(!rail) return; const t=$("#thread");
   if(_navIO){ _navIO.disconnect(); _navIO=null; } if(_navRO){ _navRO.disconnect(); _navRO=null; }
   const turns=navUserTurns();
-  if(turns.length<2){ rail.classList.remove("show"); const iu=$("#navMarksInner"); if(iu) iu.innerHTML=""; const pu=$("#navPanel"); if(pu) pu.innerHTML=""; return; }
+  if(turns.length<2){ rail.classList.remove("show"); const iu=$("#navMarksInner"); if(iu) iu.innerHTML=""; const pu=$("#navPanel"); if(pu){ pu.textContent=""; pu.classList.remove("show"); } return; }
   layoutNavMarks(); rail.classList.add("show");
   _navIO=new IntersectionObserver((es)=>{ es.forEach(e=>{ if(e.isIntersecting) setNavActive(Number(e.target.dataset.i)); }); },
     { root:t, rootMargin:"-15% 0px -75% 0px", threshold:0 });
@@ -540,13 +560,16 @@ function wireSettings(){
 }
 function setupVoice(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){ $("#micBtn").style.display="none"; return; }
+  const micEl=$("#micBtn");
+  if(!SR){ if(micEl){ micEl.dataset.avail="0"; micEl.hidden=true; } updateSendBtn(); return; }
+  if(micEl) micEl.dataset.avail="1";
   recog=new SR(); recog.continuous=false; recog.interimResults=true; recog.lang="en-US";
   let base="";
   recog.onresult=e=>{ let t=""; for(let i=e.resultIndex;i<e.results.length;i++) t+=e.results[i][0].transcript; $("#input").value=base+t; autoGrow(); updateSendBtn(); };
-  recog.onend=()=>{ recording=false; $("#micBtn").classList.remove("rec"); };
-  recog.onerror=()=>{ recording=false; $("#micBtn").classList.remove("rec"); };
+  recog.onend=()=>{ recording=false; $("#micBtn").classList.remove("rec"); updateSendBtn(); };
+  recog.onerror=()=>{ recording=false; $("#micBtn").classList.remove("rec"); updateSendBtn(); };
   $("#micBtn").onclick=()=>{ if(recording){ recog.stop(); return; } base=$("#input").value?$("#input").value+" ":""; recording=true; $("#micBtn").classList.add("rec"); try{recog.start();}catch(e){} };
+  updateSendBtn();   // apply the empty-state layout (solid mic visible, send hidden)
 }
 
 /* ----------------------------- ui glue ---------------------------------- */
@@ -585,11 +608,12 @@ async function init(){
   $("#input").addEventListener("input", ()=>{ autoGrow(); updateSendBtn(); });
   $("#input").addEventListener("keydown", e=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); send(); } });
   $("#thread").addEventListener("scroll", ()=>{ stick=nearBottom(); updateScrollBtn(); if(!_navVpRaf) _navVpRaf=requestAnimationFrame(()=>{ _navVpRaf=0; updateNavViewport(); }); });
-  // Hover the rail (or the panel) to reveal/keep the message-preview panel.
-  ["#navMarks","#navPanel"].forEach(sel=>{ const el=$(sel); if(!el) return;
-    el.addEventListener("mouseenter",()=>{ clearTimeout(_navHideT); const p=$("#navPanel"); if(p&&$("#navMarks").classList.contains("show")) p.classList.add("show"); });
-    el.addEventListener("mouseleave",()=>{ _navHideT=setTimeout(()=>{ const p=$("#navPanel"); if(p) p.classList.remove("show"); },200); });
-  });
+  // Hover a rail mark to reveal a compact preview tooltip aligned to that mark; leave the rail to hide it.
+  { const rail=$("#navMarks"), panel=$("#navPanel");
+    if(rail && panel){
+      rail.addEventListener("mouseover", e=>{ const mk=e.target.closest(".nav-mark"); if(mk){ clearTimeout(_navHideT); _navHoverI=Number(mk.dataset.i); showNavTip(mk); } });
+      rail.addEventListener("mouseleave", ()=>{ _navHoverI=null; _navHideT=setTimeout(()=>panel.classList.remove("show"), 150); });
+    } }
   document.querySelectorAll("[data-theme-choice]").forEach(b=>b.onclick=()=>applyTheme(b.dataset.themeChoice));
   document.querySelectorAll("[data-close]").forEach(b=>b.onclick=closeModals);
   document.querySelectorAll(".overlay").forEach(o=>o.addEventListener("click", e=>{ if(e.target===o) closeModals(); }));
