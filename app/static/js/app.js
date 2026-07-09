@@ -10,6 +10,7 @@ const IC = {
   like:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>',
   dislike:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>',
   speak:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>',
+  trash:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>',
 };
 const ICON_SEND = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
 const ICON_STOP = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>';
@@ -128,9 +129,10 @@ function chatItemHtml(c){
 function chatMenu(e,id){
   e.stopPropagation(); closeAllMenus();
   const ctx=$("#ctxMenu");
-  ctx.innerHTML = `<div class="opt" onclick="startRename('${id}')">${IC.edit} Rename</div>
-    <div class="opt" onclick="exportChat('${id}')">${IC.copy} Export</div>
-    <div class="opt danger" onclick="deleteChat('${id}')">✕ Delete</div>`;
+  ctx.innerHTML = `<div class="opt" onclick="startRename('${id}')">${IC.edit}<span>Rename</span></div>
+    <div class="opt" onclick="exportChat('${id}')">${IC.copy}<span>Export</span></div>
+    <div class="menu-sep"></div>
+    <div class="opt danger" onclick="deleteChat('${id}')">${IC.trash}<span>Delete</span></div>`;
   ctx.style.left = Math.min(e.clientX, innerWidth-210) + "px";
   ctx.style.top = (e.clientY+4) + "px"; ctx.classList.add("open");
 }
