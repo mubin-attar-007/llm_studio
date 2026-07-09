@@ -485,12 +485,6 @@ function showNavTip(mark){
   panel.style.top=(mr.top-pr.top+mr.height/2)+"px";
   panel.classList.add("show");
 }
-function updateNavViewport(){
-  const vp=$("#navViewport"), rail=$("#navMarks"), t=$("#thread"); if(!vp||!rail) return;
-  if(!rail.classList.contains("show")){ vp.style.display="none"; return; }
-  const H=t.scrollHeight||1, top=(t.scrollTop/H)*100, h=(t.clientHeight/H)*100;
-  vp.style.display="block"; vp.style.top=top.toFixed(2)+"%"; vp.style.height=Math.max(4,Math.min(100-top,h)).toFixed(2)+"%";
-}
 function renderNavMarks(){
   const rail=$("#navMarks"); if(!rail) return; const t=$("#thread");
   if(_navIO){ _navIO.disconnect(); _navIO=null; } if(_navRO){ _navRO.disconnect(); _navRO=null; }
@@ -500,9 +494,8 @@ function renderNavMarks(){
   _navIO=new IntersectionObserver((es)=>{ es.forEach(e=>{ if(e.isIntersecting) setNavActive(Number(e.target.dataset.i)); }); },
     { root:t, rootMargin:"-15% 0px -75% 0px", threshold:0 });
   turns.forEach(({i})=>{ const el=t.querySelector(`.row[data-i="${i}"]`); if(el) _navIO.observe(el); });
-  _navRO=new ResizeObserver(()=>{ if(!_navVpRaf) _navVpRaf=requestAnimationFrame(()=>{ _navVpRaf=0; layoutNavMarks(); updateNavViewport(); }); });
+  _navRO=new ResizeObserver(()=>{ if(!_navVpRaf) _navVpRaf=requestAnimationFrame(()=>{ _navVpRaf=0; layoutNavMarks(); }); });
   const innerEl=t.querySelector(".thread-inner"); if(innerEl) _navRO.observe(innerEl);
-  updateNavViewport();
 }
 function scrollToMsg(i){
   const el=$("#thread").querySelector(`.row[data-i="${i}"]`); if(!el) return;
@@ -607,7 +600,7 @@ async function init(){
   $("#searchInput").addEventListener("input", e=>{ state.search=e.target.value; renderSidebar(); });
   $("#input").addEventListener("input", ()=>{ autoGrow(); updateSendBtn(); });
   $("#input").addEventListener("keydown", e=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); send(); } });
-  $("#thread").addEventListener("scroll", ()=>{ stick=nearBottom(); updateScrollBtn(); if(!_navVpRaf) _navVpRaf=requestAnimationFrame(()=>{ _navVpRaf=0; updateNavViewport(); }); });
+  $("#thread").addEventListener("scroll", ()=>{ stick=nearBottom(); updateScrollBtn(); });
   // Hover a rail mark to reveal a compact preview tooltip aligned to that mark; leave the rail to hide it.
   { const rail=$("#navMarks"), panel=$("#navPanel");
     if(rail && panel){

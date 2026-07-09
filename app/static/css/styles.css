@@ -21,6 +21,8 @@
   --code-bg:#0d1117;
   --code-text:#e6edf3;
   --danger:#d1242e;              /* danger text — AA on white */
+  --sb-thumb:rgba(0,0,0,.18);    /* translucent scrollbar thumb (ChatGPT-style, not a solid bar) */
+  --sb-thumb-h:rgba(0,0,0,.32);
   --shadow:0 2px 8px rgba(0,0,0,.08);
   --shadow-lg:0 12px 32px rgba(0,0,0,.16);
   --radius:12px;
@@ -42,6 +44,8 @@
   --user-text:#ececec;
   --bg-alt:#1e1e1e;
   --danger:#f87171;              /* danger text — AA on dark */
+  --sb-thumb:rgba(255,255,255,.16);
+  --sb-thumb-h:rgba(255,255,255,.28);
   --shadow:0 2px 8px rgba(0,0,0,.3);
   --shadow-lg:0 12px 32px rgba(0,0,0,.5);
 }
@@ -463,8 +467,8 @@ body.show-auth .auth-screen{display:flex}
 .nav-marks{position:absolute;top:56px;bottom:118px;right:10px;width:18px;display:none;z-index:4}
 .nav-marks.show{display:block}
 .nav-marks-inner{position:absolute;inset:0}
-.nav-viewport{position:absolute;left:-3px;right:-3px;border-radius:7px;background:rgba(127,127,127,.1);
-  border:1px solid rgba(127,127,127,.22);pointer-events:none;min-height:12px;transition:top .08s linear,height .08s linear}
+/* ChatGPT-style rail: subtle ticks; the current section is shown by the highlighted (brighter/wider)
+   active tick — no viewport bracket/band (that read like a redundant second scrollbar). */
 .nav-mark{position:absolute;right:0;width:12px;height:2px;padding:0;border:none;border-radius:2px;
   background:var(--text-3);opacity:.34;cursor:pointer;transition:opacity .15s,width .15s,background .15s}
 .nav-mark:hover{opacity:.9;width:18px}
@@ -612,12 +616,13 @@ button,.chat-item,.ex,.menu .opt,input,textarea,.icon-btn,.round,.user-btn,.newc
 /* neutral (now monochrome) focus ring */
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-/* modern, subtle scrollbars */
-*{scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-::-webkit-scrollbar{width:10px;height:10px}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px;border:2px solid transparent;background-clip:padding-box}
-::-webkit-scrollbar-thumb:hover{background:var(--text-3)}
+/* modern, subtle scrollbars (ChatGPT-style: thin, translucent, transparent track) */
+*{scrollbar-width:thin;scrollbar-color:var(--sb-thumb) transparent}
+::-webkit-scrollbar{width:12px;height:12px}
+::-webkit-scrollbar-thumb{background:var(--sb-thumb);border-radius:99px;border:3px solid transparent;background-clip:padding-box;min-height:40px}
+::-webkit-scrollbar-thumb:hover{background:var(--sb-thumb-h)}
 ::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-corner{background:transparent}
 
 /* respect reduced-motion */
 @media(prefers-reduced-motion:reduce){
