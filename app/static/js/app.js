@@ -7,6 +7,9 @@ const IC = {
   check:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
   edit:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
   regen:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>',
+  like:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>',
+  dislike:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>',
+  speak:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>',
 };
 const ICON_SEND = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
 const ICON_STOP = '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>';
@@ -152,11 +155,11 @@ function renderThread(){
     const hi = nm ? `Hey, ${escapeHtml(nm)}. Ready to dive in?` : "What can I help with?";
     t.innerHTML = `<div class="thread-inner"><div class="empty-hero"><h1>${hi}</h1></div></div>`;
     const ep=$("#emptyPills"); if(ep) ep.innerHTML=pillsHtml();
-    updateScrollBtn(); return;
+    updateScrollBtn(); renderNavMarks(); return;
   }
   { const ep=$("#emptyPills"); if(ep) ep.innerHTML=""; }
   t.innerHTML = `<div class="thread-inner">${c.messages.map((m,i)=>rowHtml(m,i,c.messages.length)).join("")}</div>`;
-  enhance(t); stick=true; scrollToBottom(); updateScrollBtn();
+  enhance(t); stick=true; scrollToBottom(); updateScrollBtn(); renderNavMarks();
 }
 const _pillSvg=(p)=>`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
 function pillsHtml(){
@@ -174,7 +177,7 @@ function rowHtml(m,i,total){
   if(m.role==="user"){
     const file = m.file ? `<div class="file-chip"><span class="ic">📄</span>${escapeHtml(m.file)}</div>` : "";
     return `<div class="row user" data-i="${i}"><div class="bubble-wrap">${file}<div class="bubble">${escapeHtml(m.display!=null?m.display:m.content)}</div>
-      <div class="msg-actions"><button class="act" title="Copy" onclick="copyMsg(${i})">${IC.copy}</button>
+      <div class="msg-actions"><button class="act" title="Copy" onclick="copyMsg(${i},this)">${IC.copy}</button>
       <button class="act" title="Edit" onclick="editMsg(${i})">${IC.edit}</button></div></div></div>`;
   }
   // single assistant
@@ -188,7 +191,13 @@ function rowHtml(m,i,total){
              : (m._streaming?'<span class="thinking"><i></i><i></i><i></i></span>':"");
   inner += `<div class="content" data-md="1">${body}</div>`;
   if(m.error) inner += `<div class="err-card">⚠️ ${escapeHtml(m.error)}<div class="acts"><button onclick="regen()">Retry</button><button onclick="openModelMenu()">Switch model</button></div></div>`;
-  if(!m._streaming && (m.content||m.error)) inner += `<div class="msg-actions"><button class="act" title="Copy" onclick="copyMsg(${i})">${IC.copy}</button>${last?`<button class="act" title="Regenerate" onclick="regen()">${IC.regen}</button>`:''}</div>`;
+  if(!m._streaming && (m.content||m.error)) inner += `<div class="msg-actions">`+
+    `<button class="act" title="Copy" onclick="copyMsg(${i},this)">${IC.copy}</button>`+
+    `<button class="act like" title="Good response" onclick="likeMsg(1,this)">${IC.like}</button>`+
+    `<button class="act dislike" title="Bad response" onclick="likeMsg(-1,this)">${IC.dislike}</button>`+
+    `<button class="act" title="Read aloud" onclick="readAloud(${i})">${IC.speak}</button>`+
+    (last?`<button class="act" title="Regenerate" onclick="regen()">${IC.regen}</button>`:'')+
+    `</div>`;
   return `<div class="row assistant ${last?'last':''}" data-i="${i}"><div class="avatar">L</div><div class="asst">${inner}</div></div>`;
 }
 function enhance(root){
@@ -212,7 +221,27 @@ function wrapCode(pre){
     navigator.clipboard.writeText(code?code.innerText:pre.innerText);
     btn.innerHTML=IC.check+" Copied"; setTimeout(()=>btn.innerHTML=IC.copy+" Copy code",1200); };
 }
-function copyMsg(i){ const m=curChat().messages[i]; navigator.clipboard.writeText(m.display!=null&&m.role==="user"?m.display:m.content); toast("Copied"); }
+function copyMsg(i, el){
+  const m=curChat().messages[i]; navigator.clipboard.writeText(m.display!=null&&m.role==="user"?m.display:m.content);
+  if(el){ el.innerHTML=IC.check; el.classList.add("ok"); el.title="Copied"; setTimeout(()=>{ el.innerHTML=IC.copy; el.classList.remove("ok"); el.title="Copy"; },1300); }
+  else toast("Copied");
+}
+// Local feedback (no feedback backend): toggle the visual state, clear the sibling.
+function likeMsg(val, el){
+  if(!el) return; const row=el.closest(".msg-actions"); if(!row) return;
+  const up=row.querySelector(".act.like"), dn=row.querySelector(".act.dislike");
+  const wasOn=el.classList.contains("on");
+  up&&up.classList.remove("on"); dn&&dn.classList.remove("on");
+  if(!wasOn){ el.classList.add("on"); toast(val>0?"Thanks for the feedback":"Thanks — noted"); }
+}
+// Read aloud via the browser Speech Synthesis API (click again to stop).
+function readAloud(i){
+  if(!("speechSynthesis" in window)){ toast("Read aloud isn't supported in this browser"); return; }
+  if(speechSynthesis.speaking){ speechSynthesis.cancel(); return; }
+  const m=curChat().messages[i]; if(!m||!m.content) return;
+  const text=(m.content||"").replace(/```[\s\S]*?```/g," (code block) ").replace(/[#*`>_~|]/g,"").replace(/\[(.*?)\]\((.*?)\)/g,"$1");
+  speechSynthesis.speak(new SpeechSynthesisUtterance(text)); toast("Reading aloud…");
+}
 
 /* ----------------------------- edit / regenerate ------------------------ */
 function editMsg(i){
@@ -324,6 +353,30 @@ function nearBottom(){ const t=$("#thread"); return t.scrollHeight - t.scrollTop
 function smartScroll(){ if(stick){ const t=$("#thread"); t.scrollTop=t.scrollHeight; } }
 function scrollToBottom(){ const t=$("#thread"); t.scrollTop=t.scrollHeight; stick=true; updateScrollBtn(); }
 function updateScrollBtn(){ const t=$("#thread"); const show=!$("#main").classList.contains("empty") && (t.scrollHeight-t.scrollTop-t.clientHeight>200); $("#scrollBtn").classList.toggle("show", show); }
+// Right-side prompt-navigation rail: one mark per user turn, jump-to on click (ChatGPT-style, for long chats).
+function renderNavMarks(){
+  const rail=$("#navMarks"); if(!rail) return;
+  const t=$("#thread"), c=curChat();
+  const users = c ? c.messages.filter(m=>m.role==="user").length : 0;
+  if(!c || users<2){ rail.innerHTML=""; rail.classList.remove("show"); return; }
+  const H = t.scrollHeight || 1;
+  let html="";
+  c.messages.forEach((m,i)=>{
+    if(m.role!=="user") return;
+    const el=t.querySelector(`.row[data-i="${i}"]`); if(!el) return;
+    const top=Math.min(99, Math.max(1, (el.offsetTop/H)*100));
+    html+=`<button class="nav-mark" style="top:${top.toFixed(2)}%" title="${escapeAttr((m.display!=null?m.display:m.content||"").slice(0,80))}" onclick="scrollToMsg(${i})"></button>`;
+  });
+  rail.innerHTML=html; rail.classList.add("show"); updateNavActive();
+}
+function scrollToMsg(i){ const el=$("#thread").querySelector(`.row[data-i="${i}"]`); if(el){ stick=false; el.scrollIntoView({behavior:"smooth",block:"start"}); } }
+function updateNavActive(){
+  const t=$("#thread"), rail=$("#navMarks"); if(!rail||!rail.classList.contains("show")) return;
+  const marks=[...rail.querySelectorAll(".nav-mark")]; if(!marks.length) return;
+  const y=t.scrollTop+t.clientHeight*0.3; let active=marks[0];
+  marks.forEach(mk=>{ if(parseFloat(mk.style.top)/100*t.scrollHeight<=y) active=mk; });
+  marks.forEach(mk=>mk.classList.toggle("on", mk===active));
+}
 
 /* ----------------------------- attachments ------------------------------ */
 async function uploadFile(f){
@@ -417,7 +470,7 @@ async function init(){
   $("#searchInput").addEventListener("input", e=>{ state.search=e.target.value; renderSidebar(); });
   $("#input").addEventListener("input", ()=>{ autoGrow(); updateSendBtn(); });
   $("#input").addEventListener("keydown", e=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); send(); } });
-  $("#thread").addEventListener("scroll", ()=>{ stick=nearBottom(); updateScrollBtn(); });
+  $("#thread").addEventListener("scroll", ()=>{ stick=nearBottom(); updateScrollBtn(); updateNavActive(); });
   document.querySelectorAll("[data-theme-choice]").forEach(b=>b.onclick=()=>applyTheme(b.dataset.themeChoice));
   document.querySelectorAll("[data-close]").forEach(b=>b.onclick=closeModals);
   document.querySelectorAll(".overlay").forEach(o=>o.addEventListener("click", e=>{ if(e.target===o) closeModals(); }));

@@ -447,6 +447,19 @@ body.show-auth .auth-screen{display:flex}
 .pill svg{width:16px;height:16px;opacity:.85;flex:0 0 auto}
 .main.empty .foot-note{display:none}
 
+/* message-action feedback states (copied / thumbs selected) */
+.act.on{color:var(--text)}
+.act.ok{color:var(--text)}
+
+/* right-side prompt-navigation rail — one mark per user turn, for long chats */
+.nav-marks{position:absolute;top:56px;bottom:118px;right:10px;width:18px;display:none;z-index:4}
+.nav-marks.show{display:block}
+.nav-mark{position:absolute;right:0;width:12px;height:2px;padding:0;border:none;border-radius:2px;
+  background:var(--text-3);opacity:.32;cursor:pointer;transition:opacity .15s,width .15s,background .15s}
+.nav-mark:hover{opacity:.9;width:18px}
+.nav-mark.on{opacity:1;width:18px;background:var(--text-2)}
+@media(max-width:820px){.nav-marks{display:none!important}}
+
 ::selection{background:rgba(13,13,13,.10)}
 [data-theme="dark"] ::selection{background:rgba(255,255,255,.16)}
 
