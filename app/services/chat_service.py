@@ -45,10 +45,15 @@ def stream_chat(messages, model=None, max_tokens=None, temperature=None):
                         time.sleep(1.0 * (a + 1))
                         continue
                     raise
+            finish = None
+            chars = 0
             for chunk in stream:
                 if not chunk.choices:
                     continue
-                delta = chunk.choices[0].delta
+                choice = chunk.choices[0]
+                if choice.finish_reason:
+                    finish = choice.finish_reason  # "stop" | "length" | ...
+                delta = choice.delta
                 rc = getattr(delta, "reasoning_content", None)
                 if rc is None:
                     me = getattr(delta, "model_extra", None) or {}
@@ -57,9 +62,13 @@ def stream_chat(messages, model=None, max_tokens=None, temperature=None):
                     yield {"thinking": rc}
                 if getattr(delta, "content", None):
                     produced = True
+                    chars += len(delta.content)
                     yield {"token": delta.content}
             if produced:
-                yield {"done": True}
+                # Some providers (e.g. Cloudflare) report finish_reason "stop" even when the
+                # reply was cut off at max_tokens, so fall back to a length heuristic (~4 chars/token).
+                truncated = finish == "length" or (chars / 4) >= max_tokens * 0.9
+                yield {"done": True, "reason": "length" if truncated else (finish or "stop")}
                 return
             if attempt == 0:
                 time.sleep(0.8)

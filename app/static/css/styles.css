@@ -503,6 +503,14 @@ body.show-auth .auth-screen{display:flex}
 [data-theme="dark"] .chat-item:hover,[data-theme="dark"] .sidebar .newchat:hover{background:rgba(255,255,255,.05)}
 [data-theme="dark"] .send{background:#fff;color:#000}
 
+/* "Continue generating" — shown on a reply truncated at the token limit */
+.continue-wrap{margin-top:10px}
+.continue-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border:1px solid var(--border);
+  border-radius:999px;background:transparent;color:var(--text-2);font:inherit;font-size:13px;font-weight:500;
+  cursor:pointer;transition:background var(--tr),color var(--tr),border-color var(--tr)}
+.continue-btn:hover{background:var(--hover);color:var(--text);border-color:var(--text-3)}
+.continue-btn svg{opacity:.85;flex:0 0 auto}
+
 ::selection{background:rgba(13,13,13,.10)}
 [data-theme="dark"] ::selection{background:rgba(255,255,255,.16)}
 

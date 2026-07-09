@@ -214,6 +214,7 @@ function rowHtml(m,i,total){
     `<button class="act" title="Read aloud" onclick="readAloud(${i})">${IC.speak}</button>`+
     (last?`<button class="act" title="Regenerate" onclick="regen()">${IC.regen}</button>`:'')+
     `</div>`;
+  if(!m._streaming && m.truncated && last) inner += `<div class="continue-wrap"><button class="continue-btn" onclick="continueGen()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>Continue generating</button></div>`;
   return `<div class="row assistant ${last?'last':''}" data-i="${i}"><div class="avatar">L</div><div class="asst">${inner}</div></div>`;
 }
 function enhance(root){
@@ -316,6 +317,7 @@ async function streamInto(messages, model, ctrl, cb){
       if(o.token) cb.onToken(o.token);
       else if(o.thinking) cb.onThink(o.thinking);
       else if(o.error) cb.onError(o.error);
+      else if(o.done && cb.onDone) cb.onDone(o.reason);
     }
   }
 }
@@ -348,6 +350,7 @@ async function runCompletion(c, maybeTitle){
       onToken:(t)=>{ bot.content+=t; if(cEl && !raf) raf=requestAnimationFrame(flush); },
       onThink:(t)=>{ bot.thinking+=t; const tk=row&&row.querySelector(".think .tk"); if(tk){ tk.textContent=bot.thinking; smartScroll(); } },
       onError:(e)=>{ bot.error=e; },
+      onDone:(reason)=>{ bot.truncated=(reason==="length"); },
     });
   }catch(e){ if(e.name!=="AbortError") bot.error=e.message; }
   if(raf) cancelAnimationFrame(raf);
@@ -355,6 +358,35 @@ async function runCompletion(c, maybeTitle){
   if(!bot.content.trim() && !bot.error) bot.error="The model returned no text. Try again or pick another model.";
   setGenerating(false); c.updated=Date.now(); saveChats(); renderThread(); renderSidebar();
   if(maybeTitle) autoTitle(c);
+}
+// Continue a reply that was cut off at the token limit: re-stream with the partial
+// reply in context + a no-repeat nudge, appending new tokens to the SAME message.
+async function continueGen(){
+  const c=curChat(); if(!c||generating) return;
+  const bi=c.messages.length-1; const bot=c.messages[bi];
+  if(!bot||bot.role!=="assistant"||!bot.truncated) return;
+  bot.truncated=false; bot._streaming=true;
+  c.updated=Date.now(); saveChats(); renderThread(); setGenerating(true);
+  const row=document.querySelector(`.row[data-i="${bi}"]`);
+  const cEl=row && row.querySelector(".content");
+  const ctrl=new AbortController(); aborts=[ctrl];
+  let raf=0, first=true;
+  const flush=()=>{ raf=0; if(cEl){ cEl.innerHTML=renderMd(bot.content)+'<span class="cursor"></span>'; smartScroll(); } };
+  try{
+    const hist=apiHistory(c, bi+1);   // includes the partial assistant reply (index bi)
+    hist.push({role:"user", content:"The assistant reply above was cut off at the token limit. Continue it from exactly where it stopped, writing only the text that comes next. Do not repeat, restate, or re-introduce anything already written, and do not add any preamble."});
+    await streamInto(hist, state.model, ctrl, {
+      onToken:(t)=>{
+        if(first){ first=false; if(bot.content && !/\s$/.test(bot.content) && !/^[\s.,;:!?)\]}%'"]/.test(t)) t=" "+t; }
+        bot.content+=t; if(cEl && !raf) raf=requestAnimationFrame(flush);
+      },
+      onThink:()=>{},
+      onError:(e)=>{ bot.error=e; },
+      onDone:(reason)=>{ bot.truncated=(reason==="length"); },
+    });
+  }catch(e){ if(e.name!=="AbortError") bot.error=e.message; }
+  if(raf) cancelAnimationFrame(raf);
+  bot._streaming=false; setGenerating(false); c.updated=Date.now(); saveChats(); renderThread(); renderSidebar();
 }
 function setGenerating(on){
   generating=on; const b=$("#sendBtn");
