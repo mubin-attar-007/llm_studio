@@ -101,7 +101,21 @@ function newChat(){
   updateSendBtn(); saveChats(); renderSidebar(); renderThread(); if(inp) inp.focus();
 }
 function selectChat(id){ state.current=id; saveChats(); renderSidebar(); renderThread(); }
-function deleteChat(id){ closeAllMenus(); fetch("/api/chats/"+id,{method:"DELETE"}).catch(()=>{}); state.chats=state.chats.filter(c=>c.id!==id); if(state.current===id) state.current=state.chats[0]?.id||null; if(!state.chats.length){ saveChats(); newChat(); return; } saveChats(); renderSidebar(); renderThread(); }
+let _pendingDelete=null;
+function deleteChat(id){
+  closeAllMenus(); const c=state.chats.find(x=>x.id===id); if(!c) return;
+  _pendingDelete=id;
+  $("#confirmText").innerHTML=`This will delete <b>${escapeHtml(c.title||"this chat")}</b>.`;
+  openModal("confirmModal");
+}
+function confirmDeleteChat(){
+  const id=_pendingDelete; _pendingDelete=null; closeModals(); if(!id) return;
+  fetch("/api/chats/"+id,{method:"DELETE"}).catch(()=>{});
+  state.chats=state.chats.filter(c=>c.id!==id);
+  if(state.current===id) state.current=state.chats[0]?.id||null;
+  if(!state.chats.length){ saveChats(); newChat(); return; }
+  saveChats(); renderSidebar(); renderThread();
+}
 
 function groupChats(list){
   const now=new Date(); const startToday=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime(); const day=86400000;
@@ -367,7 +381,7 @@ function renderNavMarks(){
     if(m.role!=="user") return;
     const el=t.querySelector(`.row[data-i="${i}"]`); if(!el) return;
     const top=Math.min(99, Math.max(1, (el.offsetTop/H)*100));
-    html+=`<button class="nav-mark" style="top:${top.toFixed(2)}%" title="${escapeAttr((m.display!=null?m.display:m.content||"").slice(0,80))}" onclick="scrollToMsg(${i})"></button>`;
+    html+=`<button class="nav-mark" tabindex="-1" style="top:${top.toFixed(2)}%" title="${escapeAttr((m.display!=null?m.display:m.content||"").slice(0,80))}" onclick="scrollToMsg(${i})"></button>`;
   });
   rail.innerHTML=html; rail.classList.add("show"); updateNavActive();
 }
@@ -459,6 +473,7 @@ async function init(){
   $("#sidebarToggle").onclick=toggleSidebar; $("#backdrop").onclick=toggleSidebar;
   $("#modelBtn").onclick=e=>{ e.stopPropagation(); const m=$("#modelMenu"); const open=m.classList.contains("open"); closeAllMenus(); if(!open) m.classList.add("open"); };
   $("#settingsBtn").onclick=()=>{ closeAllMenus(); openModal("settingsModal"); };
+  $("#confirmDeleteBtn").onclick=confirmDeleteChat;
   $("#changePwBtn")?.addEventListener("click", changePassword);
   $("#deleteAcctBtn")?.addEventListener("click", ()=>{ $("#deleteConfirm").hidden=false; $("#deleteAcctBtn").hidden=true; });
   $("#delConfirmBtn")?.addEventListener("click", deleteAccount);
