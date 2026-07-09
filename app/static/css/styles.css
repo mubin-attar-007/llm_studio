@@ -511,6 +511,12 @@ body.show-auth .auth-screen{display:flex}
   cursor:pointer;transition:background var(--tr),color var(--tr),border-color var(--tr)}
 .continue-btn:hover{background:var(--hover);color:var(--text);border-color:var(--text-3)}
 .continue-btn svg{opacity:.85;flex:0 0 auto}
+/* windowed rendering — "Load earlier messages" affordance for very long chats */
+.load-earlier-wrap{display:flex;justify-content:center;padding:6px 0 18px}
+.load-earlier{border:1px solid var(--border);border-radius:999px;background:transparent;color:var(--text-2);
+  font:inherit;font-size:13px;font-weight:500;padding:7px 16px;cursor:pointer;
+  transition:background var(--tr),color var(--tr),border-color var(--tr)}
+.load-earlier:hover{background:var(--hover);color:var(--text);border-color:var(--text-3)}
 
 /* Archived-chats manager (Settings) */
 .archived-list{margin-top:8px;display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto}

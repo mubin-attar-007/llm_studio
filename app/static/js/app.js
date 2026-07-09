@@ -182,7 +182,21 @@ function startRename(id){
 }
 
 /* ----------------------------- rendering -------------------------------- */
-function renderThread(){
+// Windowed rendering: render only the most recent RENDER_STEP messages; a longer
+// chat shows a "Load earlier messages" button. Bounds the DOM node count AND the
+// per-render enhance() (highlight.js/KaTeX) cost on very long chats. Chats with
+// <= RENDER_STEP messages render fully — unchanged behavior (the common case).
+const RENDER_STEP=60; let _renderLimit=RENDER_STEP, _renderChatId=null;
+function loadEarlier(){
+  const t=$("#thread");
+  const prevTop=t.scrollTop, prevH=t.scrollHeight;   // re-render replaces innerHTML (resets scrollTop to 0)
+  _renderLimit+=RENDER_STEP;
+  renderThread(true);   // preserve scroll — don't jump to bottom
+  // older messages were prepended, pushing the prior view down by exactly the added height.
+  // behavior:"instant" overrides the thread's CSS scroll-behavior:smooth so this is a jump, not an animation.
+  t.scrollTo({ top: prevTop + (t.scrollHeight - prevH), behavior: "instant" });
+}
+function renderThread(preserveScroll){
   const main=$("#main"), c=curChat();
   const empty = !c || !c.messages.length;
   main.classList.toggle("empty", empty);
@@ -195,8 +209,15 @@ function renderThread(){
     updateScrollBtn(); renderNavMarks(); return;
   }
   { const ep=$("#emptyPills"); if(ep) ep.innerHTML=""; }
-  t.innerHTML = `<div class="thread-inner">${c.messages.map((m,i)=>rowHtml(m,i,c.messages.length)).join("")}</div>`;
-  enhance(t); stick=true; scrollToBottom(); updateScrollBtn(); renderNavMarks();
+  if(c.id!==_renderChatId){ _renderChatId=c.id; _renderLimit=RENDER_STEP; }   // reset window on chat switch
+  const msgs=c.messages, startIdx=Math.max(0, msgs.length-_renderLimit);
+  let html="";
+  if(startIdx>0) html+=`<div class="load-earlier-wrap"><button class="load-earlier" onclick="loadEarlier()">Load ${startIdx} earlier message${startIdx===1?"":"s"}</button></div>`;
+  html+=msgs.slice(startIdx).map((m,idx)=>rowHtml(m, startIdx+idx, msgs.length)).join("");
+  t.innerHTML=`<div class="thread-inner">${html}</div>`;
+  enhance(t);
+  if(preserveScroll!==true){ stick=true; scrollToBottom(); }
+  updateScrollBtn(); renderNavMarks();
 }
 const _pillSvg=(p)=>`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
 function pillsHtml(){
