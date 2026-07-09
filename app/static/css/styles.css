@@ -499,6 +499,8 @@ button,.chat-item,.ex,.menu .opt,input,textarea,.icon-btn,.round,.user-btn,.newc
 .auth-submit.loading::after{border-color:transparent;border-top-color:currentColor}  /* visible on white (dark theme) */
 .auth-field input:focus{border-color:var(--text-3);box-shadow:0 0 0 3px var(--ring)}
 .auth-field[hidden]{display:none}   /* [hidden] must beat .auth-field{display:flex} */
+.auth-form[hidden]{display:none}    /* likewise: [hidden] must beat .auth-form{display:flex} — else forgot/reset stack under sign-in */
+[hidden]{display:none!important}    /* belt-and-suspenders: the hidden attribute always wins */
 .auth-card{border-radius:20px}
 .chat-item input.rename{border-color:var(--text-3)}   /* neutral, not brand-green */
 .theme-opts button.sel{border-color:var(--accent)}
