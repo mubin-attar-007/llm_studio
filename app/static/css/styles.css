@@ -415,6 +415,7 @@ body.show-auth .auth-screen{display:flex}
   --accent-d:#000000;
   --active:#e3e3e3;              /* selected sidebar row */
   --user-bubble:#f4f4f4;         /* ChatGPT user bubble */
+  --composer-bg:#ffffff;         /* input pill fill (light) */
   --link:#0b5cff;
   --ring:rgba(13,13,13,.16);
   --ease-out:cubic-bezier(.16,1,.3,1);
@@ -428,9 +429,23 @@ body.show-auth .auth-screen{display:flex}
   --border:#373737;
   --active:#383838;
   --user-bubble:#303030;
+  --composer-bg:#303030;         /* ChatGPT input pill fill (dark) */
   --link:#7ab7ff;
   --ring:rgba(255,255,255,.16);
 }
+
+/* ---- ChatGPT-style composer fill + empty-state suggestion pills ---- */
+.composer{background:var(--composer-bg)}
+[data-theme="dark"] .composer{border-color:var(--composer-bg)}
+[data-theme="dark"] .composer:focus-within{border-color:#565656}
+.empty-pills{display:none}
+.main.empty .empty-pills{display:flex;flex-wrap:wrap;justify-content:center;gap:9px;max-width:var(--maxw);margin:13px auto 0;padding:0 20px}
+.pill{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);border-radius:999px;
+  padding:8px 15px 8px 12px;background:transparent;color:var(--text-2);font:inherit;font-size:13px;line-height:1;
+  cursor:pointer;transition:background var(--tr),border-color var(--tr)}
+.pill:hover{background:var(--hover)}
+.pill svg{width:16px;height:16px;opacity:.85;flex:0 0 auto}
+.main.empty .foot-note{display:none}
 
 ::selection{background:rgba(13,13,13,.10)}
 [data-theme="dark"] ::selection{background:rgba(255,255,255,.16)}
@@ -487,7 +502,7 @@ button,.chat-item,.ex,.menu .opt,input,textarea,.icon-btn,.round,.user-btn,.newc
 /* ---- Empty state ---- (greeting+composer centered, but header stays pinned top) */
 .main{position:relative}
 .main.empty .topbar{position:absolute;top:0;left:0;right:0;z-index:5}
-.empty-hero h1{font-size:28px;line-height:1.2;font-weight:500;letter-spacing:-.01em;color:var(--text);
+.empty-hero h1{font-size:28px;line-height:1.2;font-weight:600;letter-spacing:-.02em;color:var(--text);
   background:none;-webkit-text-fill-color:currentColor;margin:0 0 24px}
 @media(max-width:640px){.empty-hero h1{font-size:24px}}
 .ex{border-radius:16px}

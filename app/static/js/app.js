@@ -134,16 +134,26 @@ function renderThread(){
   const empty = !c || !c.messages.length;
   main.classList.toggle("empty", empty);
   const t=$("#thread");
-  if(empty){ t.innerHTML = `<div class="thread-inner"><div class="empty-hero"><h1>What can I help with?</h1>${examplesHtml()}</div></div>`; updateScrollBtn(); return; }
+  if(empty){
+    const u=state.user||{}; const nm=(u.display_name||"").trim().split(/\s+/)[0];
+    const hi = nm ? `Hey, ${escapeHtml(nm)}. Ready to dive in?` : "What can I help with?";
+    t.innerHTML = `<div class="thread-inner"><div class="empty-hero"><h1>${hi}</h1></div></div>`;
+    const ep=$("#emptyPills"); if(ep) ep.innerHTML=pillsHtml();
+    updateScrollBtn(); return;
+  }
+  { const ep=$("#emptyPills"); if(ep) ep.innerHTML=""; }
   t.innerHTML = `<div class="thread-inner">${c.messages.map((m,i)=>rowHtml(m,i,c.messages.length)).join("")}</div>`;
   enhance(t); stick=true; scrollToBottom(); updateScrollBtn();
 }
-function examplesHtml(){
-  const ex=[["Explain simply","Explain how neural networks learn, in plain language."],
-            ["Write code","Write a Python function that returns the nth Fibonacci number."],
-            ["Draft an email","Draft a polite email requesting a deadline extension."],
-            ["Compare ideas","List the pros and cons of remote work."]];
-  return `<div class="examples">${ex.map(e=>`<div class="ex" onclick="useExample('${e[1].replace(/'/g,"\\'")}')"><b>${e[0]}</b><span>${e[1]}</span></div>`).join("")}</div>`;
+const _pillSvg=(p)=>`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+function pillsHtml(){
+  const ex=[
+    ["Explain simply","Explain how neural networks learn, in plain language.",'<path d="M9 18h6M10 21h4M12 2a6 6 0 0 0-3.6 10.8c.5.4.9 1 1.1 1.7h5c.2-.7.6-1.3 1.1-1.7A6 6 0 0 0 12 2z"/>'],
+    ["Write code","Write a Python function that returns the nth Fibonacci number.",'<path d="M8 9l-3 3 3 3M16 9l3 3-3 3M13 6l-2 12"/>'],
+    ["Draft an email","Draft a polite email requesting a deadline extension.",'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>'],
+    ["Compare ideas","List the pros and cons of remote work.",'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>'],
+  ];
+  return ex.map(e=>`<button class="pill" onclick="useExample('${e[1].replace(/'/g,"\\'")}')">${_pillSvg(e[2])}<span>${e[0]}</span></button>`).join("");
 }
 function useExample(t){ $("#input").value=t; autoGrow(); updateSendBtn(); $("#input").focus(); }
 
