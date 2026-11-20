@@ -1,3 +1,5 @@
+> **Archived (November 2026).** An earlier learning project: a multi-user AI chat app with per-user tenancy and multi-provider routing. The code stays public as a reference. It is no longer maintained, and its hosted demo is offline (the badge below is out of date). Current work: [mubin-attar.vercel.app](https://mubin-attar.vercel.app).
+
 <div align="center">
 
 # 🤖 LLM Studio
